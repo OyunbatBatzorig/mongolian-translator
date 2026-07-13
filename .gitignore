@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Model weights, checkpoints, and training artifacts (large binaries, not source)
+my_finetuned_mn_model/
+mn-translator-results/
+benchmark/m2m100/
+benchmark/nllb/
+archive/
+
+# Logs
+*.log
+
+# Claude Code local runtime state
+.claude/
