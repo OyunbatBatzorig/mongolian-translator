@@ -31,6 +31,10 @@ CONFIGS = {
         batch_size=16,
         grad_accum=1,
         grad_checkpointing=False,
+        train_csv="data/train.csv",
+        num_epochs=5,
+        eval_strategy="epoch",
+        eval_batch_size=16,
     ),
     "nllb": dict(
         model_name="facebook/nllb-200-distilled-600M",
@@ -43,6 +47,76 @@ CONFIGS = {
         batch_size=4,
         grad_accum=4,
         grad_checkpointing=True,
+        train_csv="data/train.csv",
+        num_epochs=5,
+        eval_strategy="epoch",
+        eval_batch_size=16,
+    ),
+    "nllb_expanded": dict(
+        model_name="facebook/nllb-200-distilled-600M",
+        src_lang="eng_Latn",
+        tgt_lang="khk_Cyrl",
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        # professional pairs upweighted 3x + LaBSE-verified OPUS pairs (see
+        # benchmark/labse_filter.py); ~19.5x the row count of "nllb" above,
+        # so fewer epochs and step-based (not epoch-based) eval/checkpointing.
+        train_csv="data/train_expanded.csv",
+        num_epochs=2,
+        eval_strategy="steps",
+        eval_steps=500,
+        eval_batch_size=16,
+    ),
+    "nllb_pdf": dict(
+        model_name="facebook/nllb-200-distilled-600M",
+        src_lang="eng_Latn",
+        tgt_lang="khk_Cyrl",
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        # professional pairs (no upweight, PDF data isn't large enough to
+        # dilute them) + LaBSE-aligned pairs from the NHRCM 24th report PDF
+        # (see benchmark/pdf_align.py). Same recipe as "nllb" baseline
+        # (epoch-based eval) since row count is close in scale.
+        train_csv="data/train_pdf.csv",
+        num_epochs=5,
+        eval_strategy="epoch",
+        eval_batch_size=16,
+    ),
+    "nllb_opus85": dict(
+        model_name="facebook/nllb-200-distilled-600M",
+        src_lang="eng_Latn",
+        tgt_lang="khk_Cyrl",
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        # Same recipe as "nllb_expanded" (professional x3 + OPUS), but OPUS
+        # filtered at LaBSE similarity >= 0.85 instead of 0.75 (21,910 pairs
+        # instead of 53,218) to isolate whether the flat BLEU result was
+        # about noisy OPUS data quality rather than volume.
+        train_csv="data/train_opus85.csv",
+        num_epochs=2,
+        eval_strategy="steps",
+        eval_steps=500,
+        eval_batch_size=16,
+    ),
+    "nllb_final": dict(
+        model_name="facebook/nllb-200-distilled-600M",
+        src_lang="eng_Latn",
+        tgt_lang="khk_Cyrl",
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        # Everything that has shown a real gain so far: professional x3 +
+        # all 10 PDF-aligned documents (13,309) + OPUS filtered at LaBSE
+        # similarity >= 0.85 with biblical/religious content removed
+        # (20,628) = 43,621 rows total.
+        train_csv="data/train_final.csv",
+        num_epochs=2,
+        eval_strategy="steps",
+        eval_steps=500,
+        eval_batch_size=16,
     ),
 }
 
@@ -80,7 +154,7 @@ def main(key, resume_from_checkpoint=None):
         df = pd.read_csv(path)
         return Dataset.from_pandas(df, preserve_index=False)
 
-    train_ds = to_dataset("data/train.csv")
+    train_ds = to_dataset(cfg["train_csv"])
     val_ds = to_dataset("data/val.csv")
 
     def preprocess(examples):
@@ -110,18 +184,21 @@ def main(key, resume_from_checkpoint=None):
         chrf_score = chrf.compute(predictions=decoded_preds, references=[[l] for l in decoded_labels])
         return {"bleu": bleu_score["score"], "chrf": chrf_score["score"]}
 
+    step_based = cfg["eval_strategy"] == "steps"
     args = Seq2SeqTrainingArguments(
         output_dir=out_dir,
         per_device_train_batch_size=cfg["batch_size"],
-        per_device_eval_batch_size=cfg["batch_size"],
+        per_device_eval_batch_size=cfg["eval_batch_size"],
         gradient_accumulation_steps=cfg["grad_accum"],
-        num_train_epochs=5,
+        num_train_epochs=cfg["num_epochs"],
         learning_rate=5e-5,
         fp16=True,
         logging_steps=20,
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        save_total_limit=1,
+        eval_strategy=cfg["eval_strategy"],
+        eval_steps=cfg.get("eval_steps") if step_based else None,
+        save_strategy=cfg["eval_strategy"],
+        save_steps=cfg.get("eval_steps") if step_based else None,
+        save_total_limit=2,
         load_best_model_at_end=True,
         metric_for_best_model="bleu",
         greater_is_better=True,

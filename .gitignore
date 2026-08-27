@@ -7,11 +7,24 @@ __pycache__/
 my_finetuned_mn_model/
 mn-translator-results/
 benchmark/m2m100/
-benchmark/nllb/
+benchmark/nllb*/
 archive/
 
 # Logs
 *.log
+
+# Bulk/intermediate dataset files (headed to HF as a dataset repo, not GitHub) --
+# the small original train/val/test/all_pairs_raw splits stay tracked as-is.
+data/opus_*.csv
+data/*_aligned.csv
+data/pdf_all_aligned.csv
+data/train_expanded.csv
+data/train_opus85.csv
+data/train_pdf.csv
+data/train_final.csv
+
+# Scratch job lists with local absolute paths, not portable
+benchmark/align_jobs*.json
 
 # Claude Code local runtime state
 .claude/
