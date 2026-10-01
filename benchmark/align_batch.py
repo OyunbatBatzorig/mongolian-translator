@@ -1,14 +1,17 @@
 """Run pdf_align on an explicit list of (en_path, mn_path, out_csv) triples,
 passed as a JSON file, to avoid shell-quoting issues with filenames that
-contain spaces or embedded newlines.
+contain spaces or embedded newlines. Each job may set "source"; defaults
+to the out.csv basename if omitted.
 
 Usage:
     python benchmark/align_batch.py jobs.json
 """
 import json
+import re
 import sys
 
 from pdf_align import extract_sentences, THRESHOLD, MIN_CYRILLIC_FRACTION, cyrillic_fraction
+from csv_format import write_standard_csv
 import numpy as np
 import pandas as pd
 from sentence_transformers import SentenceTransformer
@@ -18,6 +21,7 @@ model = SentenceTransformer("sentence-transformers/LaBSE", device="cpu")
 
 for job in jobs:
     en_path, mn_path, out_path = job["en"], job["mn"], job["out"]
+    source = job.get("source") or re.sub(r"_aligned\.csv$", "", out_path.split("/")[-1])
     print(f"=== {out_path} ===")
     en_sents = extract_sentences(en_path)
     mn_sents = extract_sentences(mn_path)
@@ -41,5 +45,6 @@ for job in jobs:
 
     print(f"Mutual-best-match pairs at >= {THRESHOLD}: {len(pairs)}")
     out = pd.DataFrame(pairs, columns=["english", "mongolian", "labse_sim"])
-    out.to_csv(out_path, index=False)
+    out["source"] = source
+    write_standard_csv(out[["english", "mongolian", "source", "labse_sim"]], out_path)
     print(f"Saved to {out_path}")

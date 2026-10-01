@@ -3,7 +3,10 @@
 job for GPU memory.
 
 Usage:
-    python benchmark/pdf_align.py <en.pdf> <mn.pdf> <out.csv>
+    python benchmark/pdf_align.py <en.pdf> <mn.pdf> <out.csv> [source_name]
+
+Writes english,mongolian,source,labse_sim (see csv_format.py) -- source
+name defaults to <out.csv>'s basename if not given.
 """
 import re
 import sys
@@ -12,6 +15,8 @@ import fitz
 import numpy as np
 import pandas as pd
 from sentence_transformers import SentenceTransformer
+
+from csv_format import write_standard_csv
 
 THRESHOLD = 0.75
 MIN_WORDS = 4
@@ -112,6 +117,7 @@ def extract_sentences(path):
 
 def main():
     en_path, mn_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    source = sys.argv[4] if len(sys.argv) > 4 else re.sub(r"_aligned\.csv$", "", out_path.split("/")[-1])
 
     en_sents = extract_sentences(en_path)
     mn_sents = extract_sentences(mn_path)
@@ -137,7 +143,8 @@ def main():
     print(f"Mutual-best-match pairs at >= {THRESHOLD}: {len(pairs)}")
 
     out = pd.DataFrame(pairs, columns=["english", "mongolian", "labse_sim"])
-    out.to_csv(out_path, index=False)
+    out["source"] = source
+    write_standard_csv(out[["english", "mongolian", "source", "labse_sim"]], out_path)
     print(f"Saved to {out_path}")
 
     print("\nSample pairs:")
