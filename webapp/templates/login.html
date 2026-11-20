@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Нэвтрэх{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h2>Нэвтрэх</h2>
+  {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+  {% if info %}<div class="notice">{{ info }}</div>{% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Имэйл <input name="email" type="email" required autofocus></label>
+    <label>Нууц үг <input name="password" type="password" required></label>
+    <button class="btn">Нэвтрэх</button>
+  </form>
+  <p class="muted"><a href="/forgot">Нууц үгээ мартсан уу?</a> · Бүртгэлгүй юу? <a href="/register">Бүртгүүлэх</a></p>
+</section>
+{% endblock %}

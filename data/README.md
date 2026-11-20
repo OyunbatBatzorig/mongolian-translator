@@ -89,11 +89,11 @@ side's closest match is the other) at cosine similarity ≥ 0.75.
 
 | File | Rows | `source` values | Document(s) |
 |---|---|---|---|
-| `nhrcm_aligned.csv` | 11,973 | `NHRCM 20th` … `NHRCM 24th` | National Human Rights Commission of Mongolia annual status reports, 20th–24th editions. |
+| `nhrcm_aligned.csv` | 11,591 | `NHRCM 20th` … `NHRCM 24th` | National Human Rights Commission of Mongolia annual status reports, 20th–24th editions. |
 | `amnesty_aligned.csv` | 3,297 | `Amnesty 2024` … `Amnesty 2026` | Amnesty International "The State of the World's Human Rights," 2024–2026 editions. Mongolian editions are abridged (~16-18% of English content volume — they translate the Mongolia-relevant sections, not the full 150+-country report), so yield is lower relative to English sentence count than the NHRCM reports. |
 | `amicus_aligned.csv` | 124 | `Amicus` | Amicus curiae legal brief. Heavily footnoted with case-law citations; an early extraction pass (before the citation/Cyrillic-fraction filters existed) yielded 188 raw matches, of which 110 (58%) turned out to be untranslated case-law references left in English rather than real translated prose — see Cleanup steps below. |
 | `hr_agenda_aligned.csv` | 61 | `HR Agenda` | Human Rights Agenda policy briefing. Citation-dense document; filtering removed about half the raw matches. |
-| `pdf_all_aligned.csv` | 15,447 | (all of the above) | All four files above, combined and deduped, `source`/`labse_sim` carried through. This is what actually goes into `train_final.csv`. |
+| `pdf_all_aligned.csv` | 15,068 | (all of the above) | All four files above, combined and deduped, `source`/`labse_sim` carried through. This is what actually goes into `train_final.csv`. |
 
 Two additional documents were tested and excluded: "Just Transition and
 Human Rights" and "Human Rights in the Life Cycle of Renewable Energy and
@@ -203,8 +203,8 @@ before/after comparison.
 
 ## All data in one file
 
-`all_training_data.csv` (39,005 rows) — every distinct example from every
-source above, deduped, in one file. `train.csv` here is at its natural 1x
+`all_training_data.csv` (109,241 rows) — every distinct example from every
+source above (including the legal-law and AIM pairs, see below), deduped, in one file. `train.csv` here is at its natural 1x
 count (3,219), *not* the 3x training-upweight — upweighting is a
 training-time choice, applied separately in `train_final.csv` below, not
 part of "the dataset" itself. This is the file to reach for if you just
@@ -213,17 +213,75 @@ own training mix from scratch.
 
 ## The final training mix
 
-`train_final.csv` (45,443 rows) = `train.csv` × 3 (9,657, upweighting the
-gold-standard professional data relative to the larger, noisier automated
-sources) + `pdf_all_aligned.csv` (15,444) + `opus_verified_85_clean.csv`
-(20,342), shuffled (seed 42), `source`/`labse_sim` carried through. This
-is what the current best model was actually trained on.
+`train_final.csv` (115,679 rows, rebuilt 2026-11-08 by
+`legal_pipeline/build_training_mix.py`) = `train.csv` × 3 (9,657, upweighting
+the gold-standard professional data relative to the larger, noisier
+automated sources) + `pdf_all_aligned.csv` (15,068) +
+`opus_verified_85_clean.csv` (20,342) + legal-law clause pairs (69,783) +
+AIM pairs (362) + Vision 2050 pairs (467), shuffled (seed 42),
+`source`/`labse_sim` carried through. The `nllb_v2_laws` model was trained
+on the 115,212-row version *without* Vision 2050, saved as
+`data/backup_2026-11-08/train_final_nllb_v2_laws_115212.csv`.
+
+The previous 45,443-row version (professional×3 + PDF + OPUS, no laws) —
+the one behind the test BLEU 21.01 `nllb_final` baseline — is kept in
+`data/backup_2026-11-08/` together with the old `pdf_all_aligned` and
+`all_training_data` files, so both mixes can be compared on the same
+`test.csv`.
+
+Mix composition: laws 61%, OPUS 18%, NHRCM 10%, professional×3 8%, other
+PDF 3%, AIM <1%. Law text dominating is a known risk (legal "shall …"
+register drifting into human-rights report translation) — compare against
+`nllb_final` on `test.csv` before adopting the new model.
 
 Verified zero row overlap between this file (and `all_training_data.csv`)
 and `val.csv`/`test.csv` by exact English-sentence match, at every stage
 of the pipeline — including after the train/val/test split itself was
 rebuilt with a grouped split to fix a leakage bug (see "Split correction"
 below).
+
+## Legal sources (Tier 1, added 2026-11-08)
+
+Built by the scripts in `legal_pipeline/` from
+`Translation Dataset - EN-MN Pairs/` (originals never modified):
+
+| File | Rows | `source` values | What it is |
+|---|---|---|---|
+| `legal_pipeline/out/laws_aligned_clean.csv` | 69,789 | `Law: <Name>` | 260 Mongolian laws (520 PDFs, EN unofficial translation + MN original, legalinfo.mn). 69,783 go into `train_final.csv` after dedup against older data. |
+| `legal_pipeline/out/other_aligned_clean.csv` | 467 | `Vision 2050` | "Vision 2050" long-term development policy (EN/MN PDF in `Other/`), sentence-aligned by `other_align.py`. |
+| `legal_pipeline/out/aim_aligned_new_only.csv` | 362 | `AIM Pair1`–`Pair3` | Amnesty amicus briefs / submission (.docx/.pdf). 442 pairs total; 80 were already in `amicus_aligned.csv` (the old Amicus PDF is largely AIM Pair2). |
+
+Pipeline:
+1. `pair_laws.py` — detects each file's language, pairs EN/MN by header
+   adoption date + LaBSE title similarity (+ Mongolian title in EN
+   filenames), writes `rename_plan.csv`; `--apply` *copies* into
+   `Legal_laws_paired/` as `Law_<Name>_EN/MN.pdf`. `verify_pairs.py`
+   checks each pair's content on its first pages.
+2. `law_align.py` — aligns by the law's own clause numbers (`7.1.9` ↔
+   `7.1.9`); LaBSE ≥ 0.66 (≥ 0.70 for short items) only as a check that
+   the clause's content didn't change between the (often older) English
+   translation and the Mongolian text. Text not covered by numbered
+   clauses (e.g. the Constitution, Civil Code) falls back to sentence
+   split + LaBSE mutual best match ≥ 0.75, like `pdf_align.py`.
+   `pdf_align.py` alone does not fit law text: "1.1.Энэ" has no space
+   after the period, so its sentence splitter fuses whole articles.
+3. `clean_pairs.py` — removes amendment notes ("/This paragraph was
+   amended…/"), page footers, Latin look-alike letters inside Mongolian
+   words, HTML/Word field codes, boilerplate headers, number tables,
+   untranslated rows, repeated templates, and any row overlapping
+   `val.csv`/`test.csv`; every dropped row is logged in `*_removed.csv`.
+4. `aim_align.py` — same as `pdf_align.py` but also reads `.docx`.
+
+`nhrcm_aligned.csv` was cleaned with step 3 on 2026-11-08 (11,973 → 11,591:
+number tables, printing colophon, Mongolian on the English side, mismatched
+pairs, glued page headers). Original kept as
+`nhrcm_aligned.backup_2026-11-08.csv`; dropped rows with reasons in
+`nhrcm_aligned_removed_2026-11-08.csv`.
+
+Known gaps: several English law PDFs are incomplete or from an older
+edition than the Mongolian text (Criminal Code, Minerals, Permits,
+Investment …), so those laws yield fewer pairs than their page count
+suggests.
 
 ## Ablation history (not used in the current best model)
 

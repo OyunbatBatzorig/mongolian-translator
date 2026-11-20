@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Бүртгүүлэх{% endblock %}
+{% block content %}
+<div class="auth">
+  <aside class="auth-side">
+    <h2>Үнэгүй бүртгүүлж нэмэлт эрх аваарай</h2>
+    <ul class="feat">
+      <li>{{ trial_days }} хоногийн турш нэг удаад <b>{{ "{:,}".format(text_limits.trial) }}</b> тэмдэгт</li>
+      <li>Сард <b>{{ file_quotas.unpaid }}</b> файл орчуулах</li>
+      <li>Орчуулгын түүх, хэрэглээгээ хянах</li>
+    </ul>
+    <p class="hint">Бид таны орчуулсан текстийг хадгалдаггүй.</p>
+  </aside>
+
+  <section class="card auth-card">
+    <ol class="stepper compact">
+      <li class="{{ 'active' if step == 'email' else 'done' }}"><span>{{ '1' if step == 'email' else '✓' }}</span>Имэйл</li>
+      <li class="{{ 'active' if step != 'email' else '' }}"><span>2</span>Баталгаажуулах</li>
+    </ol>
+    {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+    {% if step == 'email' %}
+      <h1>Бүртгэл үүсгэх</h1>
+      <p class="muted">Имэйл хаягаа оруулахад 6 оронтой баталгаажуулах код илгээнэ.</p>
+      <form method="post" action="/register">
+        <input type="hidden" name="next" value="{{ next }}">
+        <label>Имэйл хаяг <input name="email" type="email" value="{{ email }}" placeholder="name@example.com" required autofocus autocomplete="email"></label>
+        <button class="btn block">Код авах</button>
+      </form>
+    {% else %}
+      <h1>Имэйлээ шалгана уу</h1>
+      <p class="muted"><b>{{ email }}</b> хаяг руу код илгээлээ. Код 10 минут хүчинтэй.
+        <a href="/register">Өөр имэйл?</a></p>
+      <form method="post" action="/register/verify" id="vf">
+        <input type="hidden" name="email" value="{{ email }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <label>Баталгаажуулах код
+          <input name="code" class="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autofocus autocomplete="one-time-code"></label>
+        <label>Нэр <small class="muted">(заавал биш)</small><input name="name" autocomplete="name"></label>
+        <label>Нууц үг <small class="muted">8-аас дээш тэмдэгт</small>
+          <span class="pw"><input name="password" type="password" minlength="8" required autocomplete="new-password" id="pw1">
+          <button type="button" class="link pw-toggle" data-for="pw1">Харах</button></span></label>
+        <div class="pw-meter"><div id="pwbar"></div></div>
+        <label>Нууц үгээ давтах<input name="password2" type="password" minlength="8" required autocomplete="new-password" id="pw2"></label>
+        <p class="hint" id="pwmatch"></p>
+        <button class="btn block">Бүртгүүлэх</button>
+      </form>
+      <form method="post" action="/register" class="resend">
+        <input type="hidden" name="email" value="{{ email }}"><input type="hidden" name="next" value="{{ next }}">
+        <span class="muted">Код ирээгүй юу?</span> <button class="link" id="resend" disabled>Дахин илгээх (<span id="cd">60</span>)</button>
+      </form>
+      <script>
+        let n = 60; const t = setInterval(() => { n--; document.getElementById('cd').textContent = n;
+          if (n <= 0) { clearInterval(t); const b = document.getElementById('resend'); b.disabled = false; b.textContent = 'Дахин илгээх'; } }, 1000);
+        const p1 = document.getElementById('pw1'), p2 = document.getElementById('pw2');
+        function chk() {
+          const v = p1.value, sc = (v.length >= 8) + (v.length >= 12) + /[0-9]/.test(v) + /[^A-Za-z0-9]/.test(v) + (/[a-z]/.test(v) && /[A-Z]/.test(v));
+          const bar = document.getElementById('pwbar'); bar.style.width = (sc * 20) + '%';
+          bar.className = sc <= 2 ? 'weak' : sc <= 3 ? 'ok' : 'strong';
+          document.getElementById('pwmatch').textContent = p2.value && p1.value !== p2.value ? 'Нууц үг таарахгүй байна' : '';
+        }
+        p1.addEventListener('input', chk); p2.addEventListener('input', chk);
+        document.querySelectorAll('.pw-toggle').forEach((b) => b.addEventListener('click', () => {
+          const i = document.getElementById(b.dataset.for); i.type = i.type === 'password' ? 'text' : 'password';
+          b.textContent = i.type === 'password' ? 'Харах' : 'Нуух'; }));
+      </script>
+    {% endif %}
+    <p class="muted center">Бүртгэлтэй юу? <a href="/login{{ '?next=' ~ next|urlencode if next }}">Нэвтрэх</a></p>
+  </section>
+</div>
+{% endblock %}

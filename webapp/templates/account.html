@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Миний бүртгэл{% endblock %}
+{% block content %}
+{% set statuses = {'done':'Дууссан','failed':'Амжилтгүй','running':'Явж байна','queued':'Дараалалд','cancelled':'Цуцалсан'} %}
+<div class="acct">
+
+  <!-- Толгой: хэн, ямар эрхтэй -->
+  <header class="acct-head">
+    <div class="avatar" aria-hidden="true">{{ (user.name or user.email)[:1]|upper }}</div>
+    <div>
+      <h1>{{ user.name or 'Миний бүртгэл' }}</h1>
+      <p class="muted">{{ user.email }} · Анх бүртгүүлсэн {{ user.created_at[:10] }}</p>
+    </div>
+    <span class="badge plan-{{ plan_now }}">{{ plan_labels.get(user.plan, user.plan) }}</span>
+  </header>
+
+  {% if msg %}<div class="notice">{{ msg }}</div>{% endif %}
+  {% if err %}<div class="notice error">{{ err }}</div>{% endif %}
+
+  <!-- Гол тоонууд -->
+  <section class="kpis">
+    <div class="kpi">
+      <span class="kpi-label">Эрх үлдсэн</span>
+      {% if days_left is none %}<b>Хугацаагүй</b>
+      {% elif days_left < 0 %}<b class="bad">Дууссан</b>
+      {% else %}<b>{{ days_left }} <small>хоног</small></b>{% endif %}
+      <span class="kpi-sub">{% if trial_until %}{{ text_limits.trial }} тэмдэгтийн туршилт{% elif user.plan == 'paid' and user.paid_until %}{{ user.paid_until }} хүртэл{% else %}&nbsp;{% endif %}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Энэ сарын файл</span>
+      <b>{{ files_used }} <small>/ {{ '∞' if files_per_month is none else files_per_month }}</small></b>
+      {% if files_per_month %}<div class="meter"><div style="width:{{ [100, (files_used * 100 / files_per_month)|round|int]|min }}%"></div></div>
+      {% else %}<span class="kpi-sub">хязгааргүй</span>{% endif %}
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Энэ сарын текст орчуулга</span>
+      <b>{{ usage.texts }} <small>удаа</small></b>
+      <span class="kpi-sub">{{ "{:,}".format(usage.chars) }} тэмдэгт</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Нэг удаагийн хязгаар</span>
+      <b>{{ "{:,}".format(max_chars) }} <small>тэмдэгт</small></b>
+      <span class="kpi-sub">файл {{ max_pages }} хуудас хүртэл</span>
+    </div>
+  </section>
+
+  {% if plan_now == 'unpaid' or (days_left is not none and days_left <= 7 and user.plan == 'paid') %}
+  <div class="notice upsell">
+    <span>{% if plan_now == 'unpaid' %}<b>Төлбөртэй эрх:</b> нэг удаад {{ "{:,}".format(text_limits.paid) }} тэмдэгт, сард {{ file_quotas.paid }} файл.
+      {% else %}<b>Таны эрх {{ days_left }} хоногийн дараа дуусна.</b>{% endif %}</span>
+    <a class="btn small" href="/pricing">{{ 'Эрх авах' if plan_now == 'unpaid' else 'Сунгах' }}</a>
+  </div>
+  {% endif %}
+
+  <div class="acct-grid">
+    <!-- Зүүн: эрх ба аюулгүй байдал -->
+    <div class="col">
+      <section class="card">
+        <h3>Эрх ба төлбөр</h3>
+        <dl class="dl">
+          <dt>Эрх</dt><dd>{{ plan_labels.get(user.plan, user.plan) }}</dd>
+          <dt>Анх бүртгүүлсэн</dt><dd>{{ user.created_at[:10] }}</dd>
+          {% if user.plan == 'paid' %}
+          <dt>Төлбөр төлсөн огноо</dt><dd>{{ user.paid_since or '—' }}</dd>
+          <dt>Эрх дуусах огноо</dt><dd>{{ user.paid_until or '—' }}{% if days_left is not none and days_left < 0 %} <em class="bad">дууссан</em>{% endif %}</dd>
+          {% elif trial_until %}
+          <dt>Туршилт дуусах</dt><dd>{{ trial_until.strftime('%Y-%m-%d') }}</dd>
+          {% endif %}
+        </dl>
+      </section>
+
+      {% if orders %}
+      <section class="card">
+        <h3>Миний захиалгууд</h3>
+        <ul class="orders">
+          {% for o in orders %}
+          <li><a href="/orders/{{ o.id }}"><b>{{ o.id }}</b> · {{ period_labels[o.period] }}{% if o.seats > 1 %} × {{ o.seats }}{% endif %}</a>
+            <span>{{ "{:,}".format(o.amount) }}₮</span>
+            <span class="pill st-{{ o.status }}">{{ status_labels[o.status] }}</span></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+
+      <section class="card" id="security">
+        <h3>Имэйл ба нууц үг</h3>
+
+        <div class="setting">
+          <div class="setting-head">
+            <div><span class="setting-label">Имэйл хаяг</span><span class="setting-value">{{ user.email }}</span></div>
+          </div>
+          {% if step == 'email' and pending_email %}
+            <form method="post" action="/account/email/verify" class="inline-form">
+              <input type="hidden" name="new_email" value="{{ pending_email }}">
+              <label>{{ pending_email }} хаяг руу ирсэн 6 оронтой код
+                <input name="code" inputmode="numeric" maxlength="6" required autofocus autocomplete="one-time-code"></label>
+              <div class="actions-row"><button class="btn">Баталгаажуулах</button><a href="/account#security">Цуцлах</a></div>
+            </form>
+          {% else %}
+            <form method="post" action="/account/email" class="inline-form">
+              <label>Шинэ имэйл<input name="new_email" type="email" required placeholder="name@example.com"></label>
+              <div class="actions-row"><button class="btn secondary">Код авах</button></div>
+            </form>
+          {% endif %}
+        </div>
+
+        <div class="setting">
+          <div class="setting-head">
+            <div><span class="setting-label">Нууц үг</span><span class="setting-value">••••••••••</span></div>
+          </div>
+          <p class="hint">Таны нууц үг шифрлэгдсэн байдаг тул хэн ч, админ ч харах боломжгүй. Мартсан бол нууц үгээ шинээр сольно уу!</p>
+          {% if step == 'password' %}
+            <form method="post" action="/account/password/verify" class="inline-form">
+              <label>{{ user.email }} руу ирсэн код<input name="code" inputmode="numeric" maxlength="6" required autofocus autocomplete="one-time-code"></label>
+              <div class="two">
+                <label>Шинэ нууц үг<input name="password" type="password" minlength="8" required autocomplete="new-password"></label>
+                <label>Давтах<input name="password2" type="password" minlength="8" required autocomplete="new-password"></label>
+              </div>
+              <div class="actions-row"><button class="btn">Нууц үг солих</button><a href="/account#security">Цуцлах</a></div>
+            </form>
+          {% else %}
+            <form method="post" action="/account/password"><button class="btn secondary">Нууц үг солих</button></form>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <!-- Баруун: түүх -->
+    <section class="card col history">
+      <div class="hist-head">
+        <h3>Энэ сарын түүх</h3>
+        <div class="segctl" role="tablist">
+          <button class="seg-btn active" data-h="files">Файл <span>{{ file_hist|length }}</span></button>
+          <button class="seg-btn" data-h="texts">Текст <span>{{ text_hist|length }}</span></button>
+        </div>
+      </div>
+      <p class="hint">Бид таны орчуулсан текст, файлын агуулгыг хадгалдаггүй. Зөвхөн огноо, хэмжээ харагдана.</p>
+
+      <div id="h-files">
+        {% if file_hist %}
+        <div class="table-wrap"><table class="grid">
+          <thead><tr><th>Огноо</th><th>Хуудас</th><th>Чиглэл</th><th>Төлөв</th></tr></thead>
+          <tbody>{% for f in file_hist %}<tr><td>{{ f.created_at|local }}</td><td>{{ f.pages }}</td>
+            <td>{{ direction_labels.get(f.direction, f.direction) }}</td>
+            <td><span class="pill st-{{ f.status }}">{{ statuses.get(f.status, f.status) }}</span></td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% else %}<div class="empty">Энэ сард файл орчуулаагүй байна.</div>{% endif %}
+      </div>
+
+      <div id="h-texts" hidden>
+        {% if text_hist %}
+        <div class="table-wrap"><table class="grid">
+          <thead><tr><th>Огноо</th><th>Тэмдэгт</th><th>Чиглэл</th></tr></thead>
+          <tbody>{% for t in text_hist %}<tr><td>{{ t.created_at|local }}</td><td>{{ "{:,}".format(t.chars) }}</td>
+            <td>{{ direction_labels.get(t.direction, t.direction) }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% else %}<div class="empty">Энэ сард текст орчуулаагүй байна.</div>{% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+    document.getElementById('h-files').hidden = b.dataset.h !== 'files';
+    document.getElementById('h-texts').hidden = b.dataset.h !== 'texts';
+  }));
+</script>
+{% endblock %}

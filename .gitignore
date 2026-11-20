@@ -22,9 +22,24 @@ data/train_expanded.csv
 data/train_opus85.csv
 data/train_pdf.csv
 data/train_final.csv
+data/train_v9_ot.csv
+data/train_mn_en_v3.csv
 
 # Scratch job lists with local absolute paths, not portable
 benchmark/align_jobs*.json
 
+# Cached benchmark hypothesis outputs (regenerable, not source)
+benchmark/.hyps_*.json
+
+# Contributed-data retraining runs (grows ~GBs per run, lives in benchmark/contrib_runs/)
+benchmark/contrib_runs/
+
+# Downloaded binary (cloudflared), not source
+tools/
+
 # Claude Code local runtime state
 .claude/
+
+# Web app runtime data (user DB, uploads, results) -- never commit
+webapp/instance/
+webapp/instance_public/

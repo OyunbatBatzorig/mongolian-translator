@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Захиалга {{ o.id }}{% endblock %}
+{% block content %}
+<div class="checkout">
+  <ol class="stepper">
+    <li class="done"><span>✓</span>Багц</li>
+    <li class="done"><span>✓</span>Мэдээлэл</li>
+    <li class="{{ 'done' if o.status == 'confirmed' else 'active' }}"><span>{{ '✓' if o.status == 'confirmed' else '3' }}</span>Төлбөр</li>
+  </ol>
+
+  <div class="checkout-grid">
+    <div class="checkout-main card">
+      {% if o.status == 'confirmed' %}
+        <div class="success">
+          <div class="big-check">✓</div>
+          <h2>Төлбөр баталгаажлаа</h2>
+          <p class="muted">Таны эрх нээгдлээ. Баярлалаа!</p>
+          <a class="btn" href="/">Орчуулж эхлэх</a> <a href="/account">Миний бүртгэл</a>
+        </div>
+      {% elif o.status == 'cancelled' %}
+        <h2>Захиалга цуцлагдсан</h2><a class="btn" href="/pricing">Дахин захиалах</a>
+      {% else %}
+        <h2>{{ 'QPay-аар төлөх' if o.method == 'qpay' else 'Дансаар шилжүүлэх' }}</h2>
+        <p class="status-line"><span class="pill st-{{ o.status }}">{{ status_labels[o.status] }}</span></p>
+
+        {% if o.method == 'qpay' %}
+          <div class="qpay">
+            <div class="qr-placeholder" aria-label="QPay QR код">
+              {% if payment.qpay_enabled %}<!-- QPay API-аас ирсэн QR зураг энд -->{% else %}QPay QR<br><small>(QPay холбогдсоны дараа энд гарна)</small>{% endif %}
+            </div>
+            <p class="hint">Банкны аппаа нээгээд QR кодыг уншуулна уу. Одоогоор QPay холбогдоогүй тул доорх дансаар шилжүүлж болно.</p>
+          </div>
+        {% endif %}
+
+        <div class="pay-box">
+          <div class="pay-row"><span>Банк</span><b>{{ payment.bank_name }}</b></div>
+          <div class="pay-row"><span>Дансны дугаар</span><b class="copyable" data-copy="{{ payment.account_number|replace(' ', '') }}">{{ payment.account_number }}</b></div>
+          {% if payment.iban %}<div class="pay-row"><span>IBAN</span><b class="copyable" data-copy="{{ payment.iban|replace(' ', '') }}">{{ payment.iban }}</b></div>{% endif %}
+          <div class="pay-row"><span>Хүлээн авагч</span><b>{{ payment.account_holder }}</b></div>
+          <div class="pay-row"><span>Дүн</span><b class="copyable" data-copy="{{ o.amount }}">{{ "{:,}".format(o.amount) }}₮</b></div>
+          <div class="pay-row hl"><span>Гүйлгээний утга</span><b class="copyable" data-copy="{{ o.id }}">{{ o.id }}</b></div>
+        </div>
+        <p class="hint">⚠️ Гүйлгээний утга дээр <b>{{ o.id }}</b> кодыг заавал бичнэ үү. Тэгвэл бид таны төлбөрийг хурдан таньж, эрхийг тань нээнэ. Утгаар нь дарж хуулж болно.</p>
+
+        {% if o.status == 'pending' %}
+          <form method="post" action="/orders/{{ o.id }}/claim"><button class="btn block">Би төлбөрөө шилжүүлсэн</button></form>
+        {% else %}
+          <div class="notice">Баярлалаа! Төлбөрийг шалгаж байна. Баталгаажмагц эрх тань нээгдэж, энэ хуудас шинэчлэгдэнэ (ажлын цагаар ихэвчлэн 1 өдрийн дотор).</div>
+        {% endif %}
+        <div class="order-actions">
+          <a href="/buy?edit={{ o.id }}" class="back-link">← Буцах <small>(төлбөрийн хэлбэр, мэдээлэл өөрчлөх)</small></a>
+          <form method="post" action="/orders/{{ o.id }}/cancel" onsubmit="return confirm('Захиалга {{ o.id }}-г цуцлах уу?')">
+            <button class="link cancel-link">Захиалга цуцлах</button></form>
+        </div>
+      {% endif %}
+    </div>
+
+    <aside class="summary card">
+      <h3>Захиалга {{ o.id }}</h3>
+      <dl class="dl">
+        <dt>Багц</dt><dd>{{ period_labels[o.period] }}</dd>
+        <dt>Худалдан авагч</dt><dd>{{ o.org_name if o.customer_type == 'org' else o.contact_name }}</dd>
+        {% if o.customer_type == 'org' %}<dt>Регистр</dt><dd>{{ o.org_register }}</dd>{% endif %}
+        {% if ebarimt_enabled %}<dt>И-баримт</dt><dd>{{ 'Тийм' if o.ebarimt else 'Үгүй' }}</dd>{% endif %}
+        <dt>Огноо</dt><dd>{{ o.created_at|local }}</dd>
+      </dl>
+      <div class="total"><span>Нийт</span><b>{{ "{:,}".format(o.amount) }}₮</b></div>
+    </aside>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.copyable').forEach((el) => el.addEventListener('click', () => {
+    navigator.clipboard.writeText(el.dataset.copy);
+    const t = el.textContent; el.textContent = 'Хуулсан ✓'; setTimeout(() => { el.textContent = t; }, 1000);
+  }));
+  {% if o.status == 'claimed' %}setTimeout(() => location.reload(), 30000);{% endif %}
+</script>
+{% endblock %}

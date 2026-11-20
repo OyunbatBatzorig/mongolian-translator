@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сургалтын дата өгөх · Хүний эрхийн орчуулагч</title>
+  <link rel="stylesheet" href="/static/style.css?v=23">
+  <style>
+    .contrib { margin: 0 auto; }   /* орчуулагчийн хуудастай ижил өргөн (.wrap) */
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 14px; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 14px; }
+    @media (max-width: 760px) { .grid3, .grid2 { grid-template-columns: 1fr; } }
+    .contrib h1 { font-size: 22px; margin: 0; }
+    .titlebar { display: flex; align-items: center; gap: 12px; margin: 8px 0 8px; }
+    .backbtn { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px 7px 8px; border-radius: 10px; border: 1px solid var(--line, #d0d5dd);
+      text-decoration: none; color: inherit; font-size: 14px; flex: none; transition: background .15s; }
+    .backbtn:hover { background: rgba(31,95,191,.08); }
+    .backbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .contrib .lead { color: var(--muted, #6b7280); margin: 0 0 20px; }
+    .card { border: 1px solid var(--line, #e3e6eb); border-radius: 12px; padding: 18px; margin-bottom: 16px; background: var(--card, #fff); }
+    .card h2 { font-size: 16px; margin: 0 0 12px; }
+    .row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .row label { font-weight: 600; font-size: 14px; }
+    .row input[type=text], .row input[type=email], .codebox { padding: 10px 12px; border: 1px solid var(--line, #d0d5dd); border-radius: 8px; font: inherit; }
+    .modes { display: flex; gap: 10px; flex-wrap: wrap; }
+    .modes label { flex: 1 1 220px; border: 1px solid var(--line, #d0d5dd); border-radius: 10px; padding: 12px; cursor: pointer; font-weight: 400; }
+    .modes input { margin-right: 6px; }
+    .modes label:has(input:checked) { border-color: #1f5fbf; box-shadow: 0 0 0 2px rgba(31,95,191,.15); }
+    .hint { color: var(--muted, #6b7280); font-size: 13px; }
+    .consent { position: relative; display: flex; gap: 14px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer;
+      border: 1.5px solid var(--line, #d0d5dd); border-radius: 12px; padding: 14px 16px; transition: border-color .15s, background .15s; }
+    .consent input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .consent .tick { flex: none; width: 26px; height: 26px; border-radius: 7px; border: 2px solid #98a2b3; display: grid; place-items: center; margin-top: 1px; transition: all .15s; }
+    .consent .tick svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+    .consent:has(input:checked) { border-color: #1f5fbf; background: rgba(31,95,191,.06); }
+    .consent:has(input:checked) .tick { background: #1f5fbf; border-color: #1f5fbf; }
+    .consent:has(input:checked) .tick svg { opacity: 1; }
+    .consent:has(input:focus-visible) { outline: 2px solid #1f5fbf; outline-offset: 2px; }
+    .btn.big { padding: 12px 28px; font-size: 16px; border-radius: 10px; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.3); }
+    .msg { margin-top: 10px; font-size: 14px; }
+    .msg.err { color: #b42318; } .msg.ok { color: #067647; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="/simple"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.8 3 3 5.5 6 7M11 5c-.9 3.5-3.6 6.5-7 8M13 21l4-9 4 9M14.5 18h5"/></svg></span>
+  <span class="brand-text">Хүний эрхийн орчуулагч<small>Англи ↔ Монгол</small></span></a>
+  <nav style="margin-left:auto;display:flex;gap:10px;align-items:center">
+    {% if is_admin %}<a class="btn secondary small" href="/simple/admin">← Админ самбар</a>{% endif %}</nav>
+</div></header>
+<main class="wrap contrib">
+  <div class="titlebar">
+    <a class="backbtn" href="/simple" title="Орчуулагч руу буцах" aria-label="Орчуулагч руу буцах">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Буцах</span></a>
+    <h1>Орчуулагчийг сайжруулахад туслах</h1>
+  </div>
+  <p class="lead">Хүний гараар орчуулсан англи, монгол баримтаа хуваалцвал манай хүний эрхийн орчуулагч улам сайжирна. Ирсэн бүх файлыг автоматаар шалгаж, англи, монгол өгүүлбэрүүд нь бие биентэйгээ <b>85%-иас дээш</b> таарч байгаа, чанартай орчуулгыг л сургалтад ашиглана.</p>
+
+  <form id="f" class="card" enctype="multipart/form-data">
+    <h2>1. Таны мэдээлэл</h2>
+    <div class="grid3">
+    <div class="row"><label for="name">Нэр</label><input type="text" id="name" name="name" required maxlength="100"></div>
+    <div class="row"><label for="email">Имэйл</label><input type="email" id="email" name="email" required maxlength="200">
+      <span class="hint">Баталгаажуулах 6 оронтой код энэ хаяг руу очно.</span></div>
+    <div class="row"><label for="org">Байгууллага (заавал биш)</label><input type="text" id="org" name="org" maxlength="150"></div>
+    </div>
+
+    <h2>2. Файл</h2>
+    <div class="modes">
+      <label><input type="radio" name="mode" value="two" checked> <b>Англи, монгол тусдаа 2 файл</b><br><span class="hint">Жишээ нь нэг тайлангийн англи, монгол хувилбар</span></label>
+      <label><input type="radio" name="mode" value="one"> <b>Хоёр хэлтэй 1 файл</b><br><span class="hint">Жишээ нь англи, монгол баганатай хүснэгт (Word, PDF, Excel, CSV)</span></label>
+      <label><input type="radio" name="mode" value="many"> <b>Олон файл, хавтас эсвэл ZIP</b><br><span class="hint">Хэдэн арван тайланг нэг дор. Аль файл аль файлынхаа орчуулга болохыг бид өөрсдөө тодорхойлно</span></label>
+    </div>
+    <div id="two" style="margin-top:12px">
+      <div class="row"><label for="file_en">Англи файл</label><input type="file" id="file_en" name="file_en" accept=".pdf,.docx,.doc,.odt,.rtf,.txt"></div>
+      <div class="row"><label for="file_mn">Монгол файл</label><input type="file" id="file_mn" name="file_mn" accept=".pdf,.docx,.doc,.odt,.rtf,.txt"></div>
+    </div>
+    <div id="many" class="hidden" style="margin-top:12px">
+      <div class="row"><label for="files_many">Файлууд (олныг нэг дор сонгож болно, ZIP ч болно)</label>
+        <input type="file" id="files_many" multiple accept=".pdf,.docx,.doc,.odt,.rtf,.txt,.csv,.xlsx,.zip"></div>
+      <div class="row"><label for="folder_many">Эсвэл бүхэл хавтас</label>
+        <input type="file" id="folder_many" webkitdirectory directory multiple></div>
+      <div class="hint" id="many_count"></div>
+      <p class="hint">Англи, монгол хувилбаруудыг нэрээр нь биш, агуулгаар нь тулгаж хос болгоно. Хоёр хэлтэй файл (хүснэгт) байвал түүнийг ч мөн боловсруулна. Нэг удаад 2–{{ max_files }} файл, нийт {{ max_total }} MB хүртэл.</p>
+    </div>
+    <div id="one" class="hidden" style="margin-top:12px">
+      <div class="row"><label for="file_both">Хоёр хэлтэй файл</label><input type="file" id="file_both" name="file_both" accept=".pdf,.docx,.doc,.odt,.rtf,.txt,.csv,.xlsx"></div>
+    </div>
+    <p class="hint">Файлын төрөл: PDF, DOCX, DOC, ODT, RTF, TXT · хоёр хэлтэй хүснэгт бол CSV, XLSX · "Олон файл" сонголтод ZIP болон бүхэл хавтас · нэг файл {{ max_mb }} MB хүртэл</p>
+
+    <h2>3. Зөвшөөрөл</h2>
+    <label class="consent">
+      <input type="checkbox" name="consent" value="yes" required>
+      <span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <span><b>Би зөвшөөрч байна.</b> Энэ орчуулгыг хуваалцах эрх надад байгаа бөгөөд Хүний эрхийн орчуулагчийн загварыг сургахад ашиглахыг зөвшөөрч байна. Файлыг сургалтаас өөр зорилгоор ашиглахгүй, бусдад түгээхгүй.</span>
+    </label>
+
+    <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn big" id="send" type="submit" disabled title="Эхлээд зөвшөөрлийн хэсгийг тэмдэглэнэ үү">Илгээх</button>
+      <button class="btn secondary" id="cancelUp" type="button" hidden>Илгээхийг зогсоох</button>
+      <a href="/simple" id="leave" style="font-size:14px">Болих</a></div>
+    <div id="msg1" class="msg"></div>
+  </form>
+
+  <div id="step2" class="card hidden">
+    <h2>Имэйлээ баталгаажуулах</h2>
+    <p class="hint"><b id="mailto"></b> хаяг руу 6 оронтой код илгээлээ (10 минут хүчинтэй).</p>
+    <div class="row"><input class="codebox" id="code" inputmode="numeric" maxlength="6" placeholder="123456"></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn big" id="verify" type="button">Баталгаажуулах</button>
+      <button class="btn secondary" id="backEdit" type="button">← Буцаж засах</button></div>
+    <p class="hint" style="margin-top:10px">Код ирээгүй бол спам хавтсаа шалгана уу. Имэйлээ буруу бичсэн бол "Буцаж засах" дарж засаад дахин илгээнэ үү.</p>
+    <div id="msg2" class="msg"></div>
+  </div>
+
+  <div id="done" class="card hidden">
+    <h2>Баярлалаа! 🙏</h2>
+    <p>Таны файлыг хүлээн авлаа. Шалгасны дараа орчуулагчийг сургахад ашиглана.</p>
+    <p style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="/simple">← Орчуулагч руу буцах</a>
+      <a class="btn secondary" href="/contribute">Өөр файл илгээх</a></p>
+  </div>
+</main>
+<footer class="foot">🔒 Энэ хуудсаар илгээсэн файлыг зөвхөн орчуулагчийг сургахад ашиглана, бусдад түгээхгүй. Имэйлээ баталгаажуулаагүй илгээлт 24 цагийн дараа устна. Нэр, имэйл, утас зэрэг хувийн мэдээлэлтэй өгүүлбэрийг сургалтаас автоматаар хасдаг.</footer>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let cid = null, ctrl = null;
+  const consent = document.querySelector('input[name=consent]');
+  const syncSend = () => { if (!ctrl) { $('send').disabled = !consent.checked; $('send').title = consent.checked ? '' : 'Эхлээд зөвшөөрлийн хэсгийг тэмдэглэнэ үү'; } };
+  consent.addEventListener('change', syncSend); syncSend();
+  $('cancelUp').addEventListener('click', () => ctrl && ctrl.abort());
+  $('backEdit').addEventListener('click', () => {  // кодын алхмаас маягт руу буцна (оруулсан мэдээлэл хэвээр)
+    $('step2').classList.add('hidden'); $('f').classList.remove('hidden'); $('msg1').textContent = ''; $('msg2').textContent = ''; $('code').value = '';
+    if (location.hash === '#code') history.back();
+  });
+  window.addEventListener('popstate', () => {
+    if (!$('step2').classList.contains('hidden')) { $('step2').classList.add('hidden'); $('f').classList.remove('hidden'); $('code').value = ''; }
+  });
+  const mode = () => document.querySelector('input[name=mode]:checked').value;
+  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => {
+    ['one', 'two', 'many'].forEach((m) => $(m).classList.toggle('hidden', mode() !== m));
+  }));
+  const OK = /\.(pdf|docx|txt|zip)$/i;
+  const manyFiles = () => [...$('files_many').files, ...$('folder_many').files].filter((f) => OK.test(f.name) && !f.name.startsWith('.'));
+  ['files_many', 'folder_many'].forEach((id) => $(id).addEventListener('change', () => {
+    const fs = manyFiles(); const mb = fs.reduce((a, f) => a + f.size, 0) / 1048576;
+    $('many_count').textContent = fs.length ? `${fs.length} файл сонгосон (${mb.toFixed(1)} MB)` : '';
+  }));
+  $('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData($('f'));
+    const m = fd.get('mode');
+    if (m !== 'two') { fd.delete('file_en'); fd.delete('file_mn'); }
+    if (m !== 'one') fd.delete('file_both');
+    if (m === 'many') {
+      const fs = manyFiles();
+      if (fs.length < 2) { $('msg1').className = 'msg err'; $('msg1').textContent = 'Хамгийн багадаа 2 файл сонгоно уу.'; return; }
+      fs.forEach((f) => fd.append('files_many', f, f.name));
+    }
+    $('send').disabled = true; $('msg1').className = 'msg'; $('msg1').textContent = 'Илгээж байна...';
+    ctrl = new AbortController(); $('cancelUp').hidden = false;
+    try {
+      const r = await fetch('/api/contribute/start', { method: 'POST', body: fd, signal: ctrl.signal });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Алдаа гарлаа');
+      cid = j.id; $('mailto').textContent = fd.get('email');
+      $('f').classList.add('hidden'); $('step2').classList.remove('hidden'); $('code').focus();
+      history.pushState({ step: 2 }, '', '/contribute#code');  // хөтчийн "Буцах" товч маягт руу буцаана
+    } catch (err) {
+      $('msg1').className = 'msg err';
+      $('msg1').textContent = err.name === 'AbortError' ? 'Илгээхийг зогсоолоо. Файлаа шалгаад дахин илгээж болно.' : err.message === 'Failed to fetch' ? 'Сервертэй холбогдож чадсангүй. Интернэтээ шалгаад дахин оролдоно уу.' : err.message;
+    } finally { $('cancelUp').hidden = true; ctrl = null; syncSend(); }
+  });
+  $('verify').addEventListener('click', async () => {
+    $('msg2').className = 'msg'; $('msg2').textContent = 'Шалгаж байна...';
+    try {
+      const r = await fetch('/api/contribute/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: cid, code: $('code').value }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Алдаа гарлаа');
+      $('step2').classList.add('hidden'); $('done').classList.remove('hidden');
+    } catch (err) { $('msg2').className = 'msg err'; $('msg2').textContent = err.message; }
+  });
+</script>
+{% include "_attribution.html" %}
+{% include "_donate.html" %}
+</body>
+</html>

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Админ самбар{% endblock %}
+{% block content %}
+<div class="admin">
+  <header class="admin-head">
+    <div><h1>Админ самбар</h1><p class="muted">{{ month }} сарын байдал</p></div>
+  </header>
+
+  <section class="kpis six">
+    <div class="kpi {{ 'alert' if totals.to_check }}"><span class="kpi-label">Шалгах төлбөр</span><b>{{ totals.to_check }}</b>
+      <span class="kpi-sub">"төлсөн" гэж мэдэгдсэн</span></div>
+    <div class="kpi"><span class="kpi-label">Энэ сарын орлого</span><b>{{ "{:,}".format(totals.revenue) }}<small>₮</small></b>
+      <span class="kpi-sub">баталгаажсан</span></div>
+    <div class="kpi"><span class="kpi-label">Хэрэглэгч</span><b>{{ users|length }}</b>
+      <span class="kpi-sub">{{ totals.active_paid }} идэвхтэй төлбөртэй</span></div>
+    <div class="kpi"><span class="kpi-label">Текст орчуулга</span><b>{{ totals.texts + totals.guest_texts }}</b>
+      <span class="kpi-sub">{{ totals.guest_texts }} нь зочин</span></div>
+    <div class="kpi"><span class="kpi-label">Файл</span><b>{{ totals.files }}</b>
+      <span class="kpi-sub">{{ totals.pages }} хуудас · зочин {{ totals.guest_files }}</span></div>
+    <div class="kpi"><span class="kpi-label">Үнэгүй эрхтэй байгууллага/хүн</span>
+      <b>{{ users|selectattr('plan','equalto','contributor')|list|length + users|selectattr('plan','equalto','amnesty_mn')|list|length }}</b>
+      <span class="kpi-sub">хувь нэмэр оруулагч, Эмнести</span></div>
+  </section>
+
+  <div class="tabbar" role="tablist">
+    <button class="tab active" data-t="orders">Захиалга {% if totals.to_check %}<span class="count">{{ totals.to_check }}</span>{% endif %}</button>
+    <button class="tab" data-t="users">Хэрэглэгчид <span class="count muted-count">{{ users|length }}</span></button>
+    <button class="tab" data-t="files">Файл орчуулга</button>
+    <button class="tab" data-t="new">+ Хэрэглэгч нэмэх</button>
+  </div>
+
+  <!-- Захиалга -->
+  <section class="card" id="t-orders">
+    <div class="toolbar">
+      <input type="search" placeholder="Код, имэйл, байгууллагаар хайх…" data-filter="orders-table">
+      <select data-status="orders-table">
+        <option value="">Бүх төлөв</option>
+        {% for k, v in status_labels.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+      </select>
+    </div>
+    {% if orders %}
+    <div class="table-wrap tall"><table class="grid" id="orders-table">
+      <thead><tr><th>Код</th><th>Огноо</th><th>Худалдан авагч</th><th>Багц</th><th>Дүн</th><th>Хэлбэр</th><th>Төлөв</th><th></th></tr></thead>
+      <tbody>
+      {% for o in orders %}
+      <tr data-status="{{ o.status }}">
+        <td><b>{{ o.id }}</b></td>
+        <td>{{ o.created_at|local }}</td>
+        <td>{% if o.customer_type == 'org' %}<b>{{ o.org_name }}</b> <small>РД {{ o.org_register }}</small><br>{% endif %}
+          {{ o.contact_name }} · {{ o.phone }}<br><small>{{ o.email }}</small>{% if o.ebarimt and ebarimt_enabled %} <i class="tag">И-баримт</i>{% endif %}</td>
+        <td>{{ period_labels[o.period] }}{% if o.seats > 1 %} × {{ o.seats }}{% endif %}</td>
+        <td><b>{{ "{:,}".format(o.amount) }}₮</b></td>
+        <td>{{ 'QPay' if o.method == 'qpay' else 'Данс' }}</td>
+        <td><span class="pill st-{{ o.status }}">{{ status_labels[o.status] }}</span></td>
+        <td class="row-actions">
+          {% if o.status in ('pending', 'claimed') %}
+          <form method="post" action="/admin/orders/{{ o.id }}" onsubmit="return confirm('{{ o.id }}: {{ '{:,}'.format(o.amount) }}₮ дансанд орсныг шалгасан уу? Эрх нээгдэнэ.')">
+            <input type="hidden" name="action" value="confirm"><button class="btn small">Баталгаажуулах</button></form>
+          <form method="post" action="/admin/orders/{{ o.id }}" onsubmit="return confirm('Захиалгыг цуцлах уу?')">
+            <input type="hidden" name="action" value="cancel"><button class="link">Цуцлах</button></form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<div class="empty">Захиалга алга байна.</div>{% endif %}
+    <p class="hint">Баталгаажуулахаас өмнө банкны хуулгаас гүйлгээний утга (код), дүнг шалгана уу. Баталгаажуулмагц худалдан авагчийн эрх автоматаар сунгагдана.</p>
+  </section>
+
+  <!-- Хэрэглэгчид -->
+  <section class="card" id="t-users" hidden>
+    <div class="toolbar">
+      <input type="search" placeholder="Имэйл, нэр, тэмдэглэлээр хайх…" data-filter="users-table">
+      <select data-plan="users-table">
+        <option value="">Бүх эрх</option>
+        {% for p in plans %}<option value="{{ p }}">{{ plan_labels[p] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="table-wrap tall"><table class="grid" id="users-table">
+      <thead><tr><th>Хэрэглэгч</th><th>Эрх</th><th>Төлбөрийн хугацаа</th><th>Энэ сар</th><th>Тэмдэглэл</th><th></th></tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr class="{{ 'off' if u.disabled }}" data-plan="{{ u.plan }}">
+        <td><b>{{ u.name or '—' }}</b><br><small>{{ u.email }}</small><br><small class="muted">бүртгүүлсэн {{ u.created_at[:10] }}</small></td>
+        <td>
+          <form method="post" action="/admin/users/{{ u.id }}" class="inline">
+            <input type="hidden" name="action" value="plan">
+            <select name="plan" onchange="this.form.submit()">
+              {% for p in plans %}<option value="{{ p }}" {% if p == u.plan %}selected{% endif %}>{{ plan_labels[p] }}</option>{% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>{% if u.plan == 'paid' %}{{ u.paid_since or '?' }} → {{ u.paid_until or '—' }}{% if u.paid_until and u.paid_until < today %}<br><em class="bad">дууссан</em>{% endif %}{% else %}—{% endif %}</td>
+        <td>{{ u.usage.texts }} текст<br>{{ u.usage.files }} файл</td>
+        <td>
+          <form method="post" action="/admin/users/{{ u.id }}" class="inline">
+            <input type="hidden" name="action" value="note">
+            <input name="note" value="{{ u.note }}" placeholder="жишээ: NHRCM датасет" onchange="this.form.submit()">
+          </form>
+        </td>
+        <td class="row-actions">
+          <form method="post" action="/admin/users/{{ u.id }}">
+            <input type="hidden" name="action" value="extend">
+            <input type="number" name="months" value="1" min="1" max="24" class="tiny"> сар
+            <button class="btn small secondary">Сунгах</button>
+          </form>
+          <form method="post" action="/admin/users/{{ u.id }}" onsubmit='return confirm({{ (u.email ~ "?")|tojson }})'>
+            <input type="hidden" name="action" value="toggle">
+            <button class="link">{{ 'Идэвхжүүлэх' if u.disabled else 'Хаах' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- Файл -->
+  <section class="card" id="t-files" hidden>
+    {% if jobs %}
+    <div class="table-wrap tall"><table class="grid">
+      <thead><tr><th>Огноо</th><th>Хэрэглэгч</th><th>Хуудас</th><th>Төлөв</th></tr></thead>
+      <tbody>{% for j in jobs %}<tr><td>{{ j.created_at|local }}</td>
+        <td>{{ 'Зочин' if j.email == 'guest@system.local' else j.email }}</td><td>{{ j.pages }}</td>
+        <td><span class="pill st-{{ j.status }}">{{ j.status }}</span>{% if j.error %} <small>{{ j.error }}</small>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <p class="hint">Файлын нэр, агуулгыг энд харуулахгүй (хэрэглэгчийн нууцлал).</p>
+    {% else %}<div class="empty">Файл орчуулга алга.</div>{% endif %}
+  </section>
+
+  <!-- Шинэ хэрэглэгч -->
+  <section class="card narrow-form" id="t-new" hidden>
+    <h3>Шинэ хэрэглэгч нэмэх</h3>
+    <p class="hint">Датасет өгсөн хүн, байгууллагын ажилтан зэрэгт. Түр нууц үгээ тэр хүнд өөрөө дамжуулж, нэвтэрсний дараа солихыг хүснэ үү.</p>
+    <form method="post" action="/admin/users">
+      <div class="two">
+        <label>Имэйл <input name="email" type="email" required></label>
+        <label>Нэр <input name="name"></label>
+      </div>
+      <div class="two">
+        <label>Түр нууц үг <input name="password" minlength="8" required></label>
+        <label>Эрх <select name="plan">{% for p in plans %}<option value="{{ p }}" {% if p=='contributor' %}selected{% endif %}>{{ plan_labels[p] }}</option>{% endfor %}</select></label>
+      </div>
+      <label>Тэмдэглэл <input name="note" placeholder="жишээ: Amnesty Монгол, NHRCM датасет өгсөн"></label>
+      <button class="btn">Нэмэх</button>
+    </form>
+  </section>
+</div>
+<script>
+  const tabs = document.querySelectorAll('.tabbar .tab');
+  function show(t) {
+    if (!document.getElementById('t-' + t)) t = 'orders';
+    tabs.forEach((b) => b.classList.toggle('active', b.dataset.t === t));
+    ['orders', 'users', 'files', 'new'].forEach((k) => { document.getElementById('t-' + k).hidden = k !== t; });
+    history.replaceState(null, '', '#' + t);
+  }
+  tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.t)));
+  if (location.hash) show(location.hash.slice(1));
+  function applyFilter(tableId) {
+    const q = (document.querySelector(`[data-filter=${tableId}]`)?.value || '').toLowerCase();
+    const st = document.querySelector(`select[data-status=${tableId}]`)?.value || '';
+    const pl = document.querySelector(`select[data-plan=${tableId}]`)?.value || '';
+    document.querySelectorAll(`#${tableId} tbody tr`).forEach((tr) => {
+      tr.hidden = !(tr.textContent.toLowerCase().includes(q) && (!st || tr.dataset.status === st) && (!pl || tr.dataset.plan === pl));
+    });
+  }
+  document.querySelectorAll('[data-filter], select[data-status], select[data-plan]').forEach((el) => {
+    const id = el.dataset.filter || el.dataset.status || el.dataset.plan;
+    el.addEventListener('input', () => applyFilter(id));
+  });
+</script>
+{% endblock %}

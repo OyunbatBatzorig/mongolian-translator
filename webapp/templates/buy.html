@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Худалдан авах{% endblock %}
+{% block content %}
+<div class="checkout">
+  <ol class="stepper" id="stepper">
+    <li class="active" data-s="1"><span>1</span>Багц</li>
+    <li data-s="2"><span>2</span>Мэдээлэл</li>
+    <li data-s="3"><span>3</span>Төлбөр</li>
+  </ol>
+  {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+  <form method="post" action="/buy" id="buyform" class="checkout-grid">
+    <input type="hidden" name="edit" value="{{ prev.id or '' }}">
+    <div class="checkout-main card">
+      <!-- 1. Багц -->
+      <fieldset class="step" data-step="1">
+        <h2>Багцаа сонгоно уу</h2>
+        <div class="choice-grid">
+          <label class="choice"><input type="radio" name="period" value="monthly" {% if period=='monthly' %}checked{% endif %}>
+            <span><b>Сарын</b><em>{{ "{:,}".format(prices.monthly) }}₮ / сар</em></span></label>
+          <label class="choice"><input type="radio" name="period" value="quarterly" {% if period=='quarterly' %}checked{% endif %}>
+            <span><b>3 сарын <i class="tag">20% хямд</i></b><em>{{ "{:,}".format(prices.quarterly) }}₮ / 3 сар</em></span></label>
+        </div>
+        <h3>Хэн худалдан авч байна вэ?</h3>
+        <div class="choice-grid">
+          <label class="choice"><input type="radio" name="customer_type" value="person" {% if prev.customer_type != 'org' %}checked{% endif %}>
+            <span><b>Хувь хүн</b><em>Өөртөө зориулж</em></span></label>
+          <label class="choice"><input type="radio" name="customer_type" value="org" {% if prev.customer_type == 'org' %}checked{% endif %}>
+            <span><b>Байгууллага</b><em>Байгууллагын нэр дээр нэхэмжлэх{% if ebarimt_enabled %}, И-баримт{% endif %}</em></span></label>
+        </div>
+        <div class="step-nav"><span></span><button type="button" class="btn" data-next="2">Үргэлжлүүлэх →</button></div>
+      </fieldset>
+
+      <!-- 2. Мэдээлэл -->
+      <fieldset class="step" data-step="2" hidden>
+        <h2>Таны мэдээлэл</h2>
+        <div class="two">
+          <label>Холбоо барих хүний нэр<input name="contact_name" value="{{ prev.contact_name or user.name }}" required></label>
+          <label>Утасны дугаар<input name="phone" type="tel" placeholder="9911 2233" value="{{ prev.phone or '' }}" required></label>
+        </div>
+        <label>Имэйл<input value="{{ user.email }}" disabled></label>
+        <div class="org-only">
+          <div class="two">
+            <label>Байгууллагын нэр<input name="org_name" placeholder="Жишээ: Монголын Эмнести Интернэшнл" value="{{ prev.org_name or '' }}"></label>
+            <label>Регистрийн дугаар<input name="org_register" placeholder="1234567" value="{{ prev.org_register or '' }}"></label>
+          </div>
+        </div>
+        {% if ebarimt_enabled %}<label class="check"><input type="checkbox" name="ebarimt" value="1" {% if prev.ebarimt %}checked{% endif %}> И-баримт авах</label>{% endif %}
+        <div class="step-nav"><button type="button" class="link" data-next="1">← Буцах</button><button type="button" class="btn" data-next="3">Үргэлжлүүлэх →</button></div>
+      </fieldset>
+
+      <!-- 3. Төлбөр -->
+      <fieldset class="step" data-step="3" hidden>
+        <h2>Төлбөрийн хэлбэр</h2>
+        <div class="choice-grid">
+          <label class="choice"><input type="radio" name="method" value="bank" {% if prev.method != 'qpay' %}checked{% endif %}>
+            <span><b>Дансаар шилжүүлэх</b><em>{{ payment.bank_name }}</em></span></label>
+          <label class="choice"><input type="radio" name="method" value="qpay" {% if prev.method == 'qpay' %}checked{% endif %}>
+            <span><b>QPay</b><em>Банкны аппаар QR уншуулах</em></span></label>
+        </div>
+        <p class="hint">Дараагийн хуудсанд дансны дугаар эсвэл QR код болон захиалгын код гарна. Төлбөр баталгаажмагц эрх тань автоматаар нээгдэнэ.</p>
+        <div class="step-nav"><button type="button" class="link" data-next="2">← Буцах</button><button class="btn">{{ 'Хадгалах' if prev.id else 'Захиалга үүсгэх' }}</button></div>
+      </fieldset>
+    </div>
+
+    <!-- Захиалгын хураангуй: үргэлж харагдана -->
+    <aside class="summary card">
+      <h3>Захиалга</h3>
+      <dl class="dl">
+        <dt>Багц</dt><dd id="sum-plan"></dd>
+        <dt>Нэгж үнэ</dt><dd id="sum-unit"></dd>
+      </dl>
+      <div class="total"><span>Нийт</span><b id="sum-total"></b></div>
+      <p class="hint" id="sum-save"></p>
+    </aside>
+  </form>
+</div>
+<script>
+  const PRICES = {{ prices|tojson }};
+  const f = document.getElementById('buyform');
+  const fmt = (n) => n.toLocaleString('en-US') + '₮';
+  function val(n) { return (f.querySelector(`[name=${n}]:checked`) || {}).value; }
+  function update() {
+    const p = val('period'), org = val('customer_type') === 'org';
+    document.querySelectorAll('.org-only').forEach((e) => { e.hidden = !org; });
+    f.org_name.required = org; f.org_register.required = org;
+    document.getElementById('sum-plan').textContent = p === 'quarterly' ? '3 сарын' : 'Сарын';
+    document.getElementById('sum-unit').textContent = fmt(PRICES[p]);
+    document.getElementById('sum-total').textContent = fmt(PRICES[p]);
+    document.getElementById('sum-save').textContent = p === 'quarterly'
+      ? `Сарын багцаас ${fmt(PRICES.monthly * 3 - PRICES.quarterly)} хэмнэнэ` : '';
+  }
+  function go(n) {
+    // дараагийн алхам руу орохоос өмнө одоогийн алхмын талбаруудыг шалгана
+    const cur = f.querySelector('.step:not([hidden])');
+    if (+n > +cur.dataset.step) {
+      for (const el of cur.querySelectorAll('input')) { if (!el.closest('[hidden]') && !el.reportValidity()) return; }
+    }
+    f.querySelectorAll('.step').forEach((s) => { s.hidden = s.dataset.step !== String(n); });
+    document.querySelectorAll('#stepper li').forEach((li) => {
+      li.classList.toggle('active', li.dataset.s === String(n));
+      li.classList.toggle('done', +li.dataset.s < +n);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  f.addEventListener('change', update); f.addEventListener('input', update);
+  document.querySelectorAll('[data-next]').forEach((b) => b.addEventListener('click', () => go(b.dataset.next)));
+  if (new URLSearchParams(location.search).get('type') === 'org') f.querySelector('[value=org]').checked = true;
+  update();
+  {% if start_step and start_step > 1 %}go({{ start_step }});{% endif %}
+</script>
+{% endblock %}

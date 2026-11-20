@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Админ нэвтрэх · Хүний эрхийн орчуулагч</title>
+  <link rel="stylesheet" href="/static/style.css?v=23">
+  <style>
+    .box { max-width: 380px; margin: 48px auto; border: 1px solid var(--line, #e3e6eb); border-radius: 14px; padding: 24px; }
+    .box h1 { font-size: 20px; margin: 0 0 16px; }
+    .box label { display: block; font-weight: 600; font-size: 14px; margin: 12px 0 4px; }
+    .box input { width: 100%; padding: 10px 12px; border: 1px solid var(--line, #d0d5dd); border-radius: 8px; font: inherit; box-sizing: border-box; }
+    .err { color: #b42318; font-size: 14px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="/simple"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.8 3 3 5.5 6 7M11 5c-.9 3.5-3.6 6.5-7 8M13 21l4-9 4 9M14.5 18h5"/></svg></span>
+  <span class="brand-text">Хүний эрхийн орчуулагч<small>Энгийн сайтын админ</small></span></a>
+  <a class="btn secondary small" href="/simple" style="margin-left:auto">← Орчуулагч руу буцах</a>
+</div></header>
+<main class="wrap">
+  {% if step2 %}
+  <form class="box" method="post" action="/simple/admin/login/2fa">
+    <h1>Баталгаажуулах код</h1>
+    <p class="muted" style="font-size:14px;margin:0 0 6px">Утсан дээрх <b>2FA</b> аппыг (Google/Microsoft Authenticator г.м.) нээж, "HR Translator MN" доор харагдах 6 оронтой кодыг оруулна уу.</p>
+    <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" pattern="[0-9 ]{6,7}" placeholder="123456" required autofocus
+      style="font-size:24px;letter-spacing:6px;text-align:center">
+    <div style="margin-top:18px"><button class="btn">Нэвтрэх</button> <a href="/simple/admin/login" style="margin-left:10px;font-size:14px">Буцах</a></div>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  </form>
+  {% else %}
+  <form class="box" method="post" action="/simple/admin/login">
+    <h1>Админ нэвтрэх</h1>
+    <label for="email">Имэйл</label><input id="email" name="email" type="email" required autofocus>
+    <label for="password">Нууц үг</label><input id="password" name="password" type="password" required>
+    <div style="margin-top:18px"><button class="btn">Нэвтрэх</button></div>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  </form>
+  {% endif %}
+</main>
+</body>
+</html>

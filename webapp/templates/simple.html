@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Хүний эрхийн орчуулагч</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f5fbf'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='15' font-weight='700' fill='white' text-anchor='middle'%3EМ%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css?v=23">
+  <style>
+    .motto { text-align: center; font-style: italic; color: var(--muted, #6b7280); margin: 4px 0 18px; font-size: 15px; }
+    .motto span { font-style: normal; margin-right: 6px; }
+    .contrib-cta { display: flex; justify-content: flex-end; max-width: 1650px; margin: 0 auto; padding: 0 20px 22px; box-sizing: border-box; }
+    .contrib-btn { display: inline-flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; text-decoration: none;
+      border: 1px solid rgba(31,95,191,.45); background: rgba(31,95,191,.04); color: inherit; max-width: 430px; transition: background .15s, transform .15s; }
+    .contrib-btn:hover { background: rgba(31,95,191,.12); transform: translateY(-1px); }
+    .contrib-btn svg { width: 26px; height: 26px; flex: none; fill: none; stroke: #1f5fbf; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+    .contrib-btn svg.arr { width: 20px; height: 20px; }
+    .contrib-btn span { display: flex; flex-direction: column; gap: 2px; }
+    .contrib-btn b { font-size: 14px; color: #1f5fbf; }
+    .contrib-btn small { font-size: 12px; line-height: 1.4; color: var(--muted, #6b7280); }
+    @media (max-width: 640px) { .contrib-cta { justify-content: center; } }
+  </style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="/simple">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.8 3 3 5.5 6 7M11 5c-.9 3.5-3.6 6.5-7 8M13 21l4-9 4 9M14.5 18h5"/></svg>
+      </span>
+      <span class="brand-text">Хүний эрхийн орчуулагч<small>Англи ↔ Монгол</small></span>
+    </a>
+  {% if is_admin %}<a class="btn secondary small" href="/simple/admin" style="margin-left:auto">← Админ самбар</a>{% endif %}
+  </div>
+</header>
+<main class="wrap">
+<p class="motto"><span aria-hidden="true">🕯️</span>Яасан харанхуй юм бэ гэж хашхирснаас ядаж нэг ч гэсэн лаа асаа</p>
+
+<div class="tabs" role="tablist">
+  <button class="tab active" data-tab="text" role="tab">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h9M8.5 3v2M6 5c.8 3 3 5.5 6 7M11 5c-.9 3.5-3.6 6.5-7 8M13 21l4-9 4 9M14.5 18h5"/></svg>
+    Текст</button>
+  <button class="tab" data-tab="doc" role="tab">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5"/></svg>
+    Баримт бичиг</button>
+</div>
+
+<div class="langbar" data-directions='{{ directions|tojson }}'>
+  <div class="lang src"><span id="srcLang">Англи</span></div>
+  <button id="swap" class="swap" title="Хэл солих" aria-label="Хэл солих">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
+  </button>
+  <div class="lang tgt"><span id="tgtLang">Монгол</span></div>
+</div>
+<div id="dirmsg" class="dirmsg"></div>
+
+<section id="tab-text" class="panes">
+  <div class="pane">
+    <div class="hl-wrap">
+      <div id="backdrop" class="backdrop" aria-hidden="true"></div>
+      <textarea id="src" maxlength="{{ max_chars }}" placeholder="Type your text here" autofocus></textarea>
+      <button class="icon clear-x" id="clear" title="Арилгах" aria-label="Арилгах" hidden>✕</button>
+    </div>
+    <div class="pane-foot">
+      <span>
+        <button class="icon" id="copysrc" title="Эх текстийг хуулах" aria-label="Эх текстийг хуулах">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg></button>
+      </span>
+      <span class="meta"><span id="count">0</span> / {{ max_chars }}</span>
+    </div>
+  </div>
+  <div class="pane out">
+    <div id="out" class="output placeholder">Орчуулга</div>
+    <div class="pane-foot">
+      <span id="status" class="meta"></span>
+      <button class="icon" id="copy" title="Хуулах" aria-label="Хуулах">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<section id="tab-doc" class="hidden">
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept=".pdf,.docx,.doc,.odt,.rtf,.txt" multiple hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M12 11v6M9 14l3-3 3 3"/></svg>
+    <b>Файлуудаа энд чирж оруулна уу</b>
+    <span>эсвэл <u>компьютерээсээ сонгох</u></span>
+    <small class="doc-note">⚠️ Файлаа оруулахаас өмнө Word дээрээ бүх засварыг (Track changes) <b>Accept</b> эсвэл <b>Reject</b> хийнэ үү. Хийгээгүй бол бүх засварыг хүлээн зөвшөөрсөн гэж үзэж орчуулна. Тайлбар (comment) орчуулагдахгүй.</small>
+    <small>PDF, DOCX, DOC, ODT, RTF, TXT</small>
+  </label>
+  <div id="picked" class="hidden">
+    <ul id="filelist" class="filelist"></ul>
+    <div class="file-actions">
+      <button class="link" id="clearfiles" type="button">Жагсаалтыг цэвэрлэх</button>
+      <span class="file-buttons">
+        <a class="btn secondary hidden" id="zipall" href="#">Бүгдийг татах (ZIP)</a>
+        <button class="btn" id="sendfile">Бүгдийг орчуулах</button>
+      </span>
+    </div>
+  </div>
+  <div id="job" class="meta"></div>
+</section>
+</main>
+<footer class="foot"><span style="font-size:12px">🔒 Таны текстийг хадгалдаггүй, лог-д бичдэггүй, загвар сургахад ашигладаггүй. Оруулсан файлыг орчуулсны дараа шууд устгадаг; орчуулсан файл {{ result_ttl }} цагийн дараа автоматаар устна, түүнийг зөвхөн та татаж авах боломжтой.</span><br><span style="font-size:12px">Машин орчуулга алдаатай байж болно. Шүүх, эрх зүйн болон бусад чухал баримтыг хүнээр хянуулна уу.</span></footer>
+<div class="contrib-cta">
+  <a class="contrib-btn" href="/contribute">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.2-9A5 5 0 0 1 12 6.6 5 5 0 0 1 21.2 12C19 16.6 12 21 12 21z"/></svg>
+    <span><b>Хүний эрхийн орчуулагчид сургалтын дата өгөх</b><small>Та өөрийн орчуулсан/хянасан баримт бичгээ бидэнтэй хуваалцаж, манай орчуулагчийг сайжруулахад туслаарай. Зөвхөн энэ хэсгээр сайн дураараа илгээсэн файлыг сургалтанд ашиглана.</small></span>
+    <svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+</div>
+<script>window.APP = { loggedIn: false, canTranslate: true, accessMsg: '', canFiles: true, fileMsg: '', maxChars: {{ max_chars }},
+  api: { translate: '/api/simple/translate', file: '/api/simple/translate-file' } };</script>
+<script src="/static/app.js?v=16"></script>
+{% include "_attribution.html" %}
+{% include "_donate.html" %}
+</body>
+</html>

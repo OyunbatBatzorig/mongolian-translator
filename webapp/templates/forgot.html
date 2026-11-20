@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Нууц үг сэргээх{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h2>Нууц үг сэргээх</h2>
+  {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+  {% if info %}<div class="notice">{{ info }}</div>{% endif %}
+  {% if step == 'email' %}
+    <form method="post" action="/forgot">
+      <label>Бүртгэлтэй имэйл <input name="email" type="email" required autofocus></label>
+      <button class="btn">Код авах</button>
+    </form>
+  {% else %}
+    <form method="post" action="/forgot/verify">
+      <input type="hidden" name="email" value="{{ email }}">
+      <label>Код (6 орон) <input name="code" inputmode="numeric" maxlength="6" required autofocus autocomplete="one-time-code"></label>
+      <label>Шинэ нууц үг <input name="password" type="password" minlength="8" required autocomplete="new-password"></label>
+      <label>Шинэ нууц үгээ давтах <input name="password2" type="password" minlength="8" required autocomplete="new-password"></label>
+      <button class="btn">Нууц үг солих</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

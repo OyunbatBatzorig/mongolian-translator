@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Үнэ{% endblock %}
+{% block content %}
+<div class="pricing">
+  <header class="pricing-head">
+    <h1>Энгийн, ил тод үнэ</h1>
+    <p class="muted">Хүний эрхийн текстэд зориулсан Англи ↔ Монгол орчуулагч. Үнэгүй эхэлж, хэрэгтэй үедээ шилжээрэй.</p>
+  </header>
+
+  <div class="plans">
+    <section class="plan">
+      <h3>Үнэгүй</h3>
+      <div class="price"><b>0₮</b></div>
+      <p class="plan-note">Бүртгэлгүйгээр шууд ашиглана</p>
+      <ul class="feat">
+        <li>Нэг удаад {{ "{:,}".format(text_limits.guest) }} тэмдэгт</li>
+        <li>Сард {{ file_quotas.guest }} файл ({{ max_pages }} хуудас хүртэл)</li>
+        <li>Бүртгүүлбэл: +1 файл, {{ trial_days }} хоног {{ "{:,}".format(text_limits.trial) }} тэмдэгт</li>
+      </ul>
+      <a class="btn secondary block" href="{{ '/' if user else '/register' }}">{{ 'Орчуулах' if user else 'Үнэгүй бүртгүүлэх' }}</a>
+    </section>
+
+    <section class="plan featured">
+      <span class="ribbon popular">Түгээмэл</span>
+      <h3>Сарын</h3>
+      <div class="price"><b>{{ "{:,}".format(prices.monthly) }}₮</b><span>/ сар</span></div>
+      <p class="plan-note">Хэзээ ч зогсоож болно</p>
+      <ul class="feat">
+        <li>Нэг удаад {{ "{:,}".format(text_limits.paid) }} тэмдэгт</li>
+        <li>Сард {{ file_quotas.paid }} файл ({{ max_pages }} хуудас хүртэл)</li>
+        <li>Өгүүлбэр тодруулах, Word файлаар татах</li>
+      </ul>
+      <a class="btn block" href="/buy?period=monthly">Сонгох</a>
+    </section>
+
+    <section class="plan">
+      <span class="ribbon save">20% хямд</span>
+      <h3>3 сарын</h3>
+      <div class="price"><b>{{ "{:,}".format(prices.quarterly) }}₮</b><span>/ 3 сар</span></div>
+      <p class="plan-note">Сард ≈ {{ "{:,}".format((prices.quarterly / 3)|round|int) }}₮ · <s>{{ "{:,}".format(prices.monthly * 3) }}₮</s></p>
+      <p class="save-note">💰 Хамгийн хямд: сарын багцаас <b>{{ "{:,}".format(prices.monthly * 3 - prices.quarterly) }}₮</b> хэмнэнэ</p>
+      <ul class="feat">
+        <li>Сарын багцын бүх боломж</li>
+        <li>3 сарын турш тасралтгүй</li>
+      </ul>
+      <a class="btn secondary block" href="/buy?period=quarterly">Сонгох</a>
+    </section>
+  </div>
+
+
+  <section class="faq">
+    <h3>Түгээмэл асуулт</h3>
+    <details><summary>Төлбөрөө хэрхэн төлөх вэ?</summary><p>Дансаар шилжүүлэх эсвэл QPay-аар төлнө. Шилжүүлэг хийхдээ захиалгын кодыг гүйлгээний утга дээр бичнэ. Төлбөр баталгаажмагц эрх автоматаар нээгдэнэ (ажлын цагаар ихэвчлэн 1 өдрийн дотор).</p></details>
+    <details><summary>Миний орчуулсан текстийг хадгалдаг уу?</summary><p>Үгүй. Бид зөвхөн хэдэн тэмдэгт, хуудас орчуулсныг тоолдог. Илгээсэн файлыг орчуулсны дараа шууд устгадаг.</p></details>
+    <details><summary>Хугацаа дуусвал юу болох вэ?</summary><p>Үнэгүй эрх рүү автоматаар шилжинэ. Сунгасан тохиолдолд одоогийн дуусах огнооноос цааш нэмэгдэнэ.</p></details>
+    <details><summary>Асуух зүйл байвал?</summary><p>{{ payment.contact_email }} · {{ payment.contact_phone }}</p></details>
+  </section>
+</div>
+{% endblock %}

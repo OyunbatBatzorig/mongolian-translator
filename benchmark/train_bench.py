@@ -101,6 +101,129 @@ CONFIGS = {
         eval_steps=500,
         eval_batch_size=16,
     ),
+    # 2026-11-08: хүний эрх + хууль + ерөнхий (албан ёсны мэдээ/мэдээлэл) өгөгдөл.
+    # data/train_v3_general.csv = train_final_nllb_v2_laws_115212 + data/general_clean.csv.
+    # 600M ба 1.3B-ийн аль нь сайн гарсан дээр нь benchmark/after_general.sh сонгож ажиллуулна.
+    "nllb_v3_general": dict(
+        model_name="facebook/nllb-200-distilled-600M", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True,
+        train_csv="data/train_v3_general.csv", num_epochs=2,
+        eval_strategy="steps", eval_steps=1000, eval_batch_size=16,
+    ),
+    "nllb13_mn_en_v3": dict(
+        # 2026-11-11: MN->EN, continue from nllb13_mn_en_v2 on human pairs of train_v9_ot (adds OT 60k + pubs; no BT)
+        model_name="benchmark/nllb13_mn_en_v2/final", src_lang="khk_Cyrl", tgt_lang="eng_Latn", reverse=True,
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True, lr=3e-5,
+        train_csv="data/train_mn_en_v3.csv", num_epochs=1,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v9_ot": dict(
+        # 2026-11-11: continue from v8 on v8 data + all 60k Oyu Tolgoi + 1k UN/UNFPA pubs, human-rights data x3 (user)
+        model_name="benchmark/nllb13_v8_wb/final", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True, lr=3e-5,
+        train_csv="data/train_v9_ot.csv", num_epochs=1,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v8_wb": dict(
+        # 2026-11-10: continue from v6 on v6 data + 35k World Bank / user reports (human translations)
+        model_name="benchmark/nllb13_v6_bt/final", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True, lr=3e-5,
+        train_csv="data/train_v8_wb.csv", num_epochs=1,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_mn_en_v2": dict(
+        # 2026-11-10: MN->EN 1.3B on all HUMAN pairs of train_v8_wb (no back-translation: its English is synthetic),
+        # test_laws / test_vision2050 excluded like nllb_mn_en so the two are comparable.
+        model_name="facebook/nllb-200-distilled-1.3B", src_lang="khk_Cyrl", tgt_lang="eng_Latn", reverse=True,
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True,
+        train_csv="data/train_mn_en_v2.csv", num_epochs=2,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v7_bt2": dict(
+        # 2026-11-10: continue from v6 on v6 data + 75k more back-translation (round 2, nllb_mn_en)
+        model_name="benchmark/nllb13_v6_bt/final", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True, lr=3e-5,
+        train_csv="data/train_v7_bt2.csv", num_epochs=1,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v6_bt": dict(
+        # 2026-11-09: continue from nllb13_v5_quality/final on v5 data + 100k back-translated pairs
+        # (real Mongolian target, synthetic English source from nllb_mn_en). User: train without asking.
+        model_name="benchmark/nllb13_v5_quality/final", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True, lr=3e-5,
+        train_csv="data/train_v6_bt.csv", num_epochs=1,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v5_quality": dict(
+        # 2026-11-09: v4 - strong number mismatches + UN/UNDP/UNFPA reports (strict) + bilingual web pages
+        model_name="facebook/nllb-200-distilled-1.3B", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True,
+        train_csv="data/train_v5_quality.csv", num_epochs=2,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v4_quality": dict(
+        # 2026-11-09: data/train_v4_quality.csv (law>=0.75, talk>=0.80, NLLB top 40k, prof manual clean, HR x2)
+        model_name="facebook/nllb-200-distilled-1.3B", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True,
+        train_csv="data/train_v4_quality.csv", num_epochs=2,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v3_general": dict(
+        model_name="facebook/nllb-200-distilled-1.3B", src_lang="eng_Latn", tgt_lang="khk_Cyrl",
+        batch_size=4, grad_accum=4, grad_checkpointing=True, optim="adafactor", bf16=True,
+        train_csv="data/train_v3_general.csv", num_epochs=2,
+        eval_strategy="steps", eval_steps=1500, eval_batch_size=8,
+    ),
+    "nllb13_v2": dict(
+        # 1.3B параметртэй NLLB (600M-ийн 2 дахин том), EN->MN, nllb_v2_laws-тай ижил өгөгдөл.
+        # 24GB GPU-д багтаахын тулд: Adafactor (Adam-аас 2-3 дахин бага санах ой), bf16, gradient checkpointing.
+        model_name="facebook/nllb-200-distilled-1.3B",
+        src_lang="eng_Latn",
+        tgt_lang="khk_Cyrl",
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        optim="adafactor",
+        bf16=True,
+        train_csv="data/backup_2026-11-08/train_final_nllb_v2_laws_115212.csv",
+        num_epochs=2,
+        eval_strategy="steps",
+        eval_steps=1000,
+        eval_batch_size=8,
+    ),
+    "nllb_mn_en": dict(
+        # Монгол -> Англи (2026-11-08). Өгөгдөл: train_final.csv-ээс 6 хууль (data/test_laws.csv)
+        # болон Vision 2050 (data/test_vision2050.csv)-ийг тусад нь шалгах зорилгоор хассан = train_mn_en.csv.
+        # val.csv / test.csv нь ижил, зөвхөн чиглэл нь эсрэг.
+        model_name="facebook/nllb-200-distilled-600M",
+        src_lang="khk_Cyrl",
+        tgt_lang="eng_Latn",
+        reverse=True,
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        train_csv="data/train_mn_en.csv",
+        num_epochs=2,
+        eval_strategy="steps",
+        eval_steps=1000,
+        eval_batch_size=16,
+    ),
+    "nllb_v2_laws": dict(
+        # Same recipe as nllb_final, on the rebuilt train_final.csv (2026-11-08):
+        # + 69,783 legal-law clause pairs + 362 AIM pairs + cleaned NHRCM
+        # = 115,212 rows. Previous train_final.csv is in data/backup_2026-11-08/.
+        model_name="facebook/nllb-200-distilled-600M",
+        src_lang="eng_Latn",
+        tgt_lang="khk_Cyrl",
+        batch_size=4,
+        grad_accum=4,
+        grad_checkpointing=True,
+        train_csv="data/train_final.csv",
+        num_epochs=2,
+        eval_strategy="steps",
+        eval_steps=1000,
+        eval_batch_size=16,
+    ),
     "nllb_final": dict(
         model_name="facebook/nllb-200-distilled-600M",
         src_lang="eng_Latn",
@@ -158,9 +281,11 @@ def main(key, resume_from_checkpoint=None):
     val_ds = to_dataset("data/val.csv")
 
     def preprocess(examples):
+        # "reverse": True бол Монгол -> Англи чиглэлд сургана (баганыг солино)
+        src_col, tgt_col = ("mongolian", "english") if cfg.get("reverse") else ("english", "mongolian")
         model_inputs = tokenizer(
-            text=examples["english"],
-            text_target=examples["mongolian"],
+            text=examples[src_col],
+            text_target=examples[tgt_col],
             max_length=MAX_LEN,
             truncation=True,
         )
@@ -191,8 +316,9 @@ def main(key, resume_from_checkpoint=None):
         per_device_eval_batch_size=cfg["eval_batch_size"],
         gradient_accumulation_steps=cfg["grad_accum"],
         num_train_epochs=cfg["num_epochs"],
-        learning_rate=5e-5,
-        fp16=True,
+        learning_rate=cfg.get("lr", 5e-5),
+        fp16=not cfg.get("bf16", False),
+        bf16=cfg.get("bf16", False),
         logging_steps=20,
         eval_strategy=cfg["eval_strategy"],
         eval_steps=cfg.get("eval_steps") if step_based else None,
@@ -206,7 +332,7 @@ def main(key, resume_from_checkpoint=None):
         generation_max_length=MAX_LEN,
         generation_num_beams=4,
         dataloader_num_workers=2,
-        optim="adamw_torch_fused",
+        optim=cfg.get("optim", "adamw_torch_fused"),
         gradient_checkpointing=cfg["grad_checkpointing"],
         report_to="none",
     )

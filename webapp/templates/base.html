@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Хүний эрхийн орчуулагч{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f5fbf'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='15' font-weight='700' fill='white' text-anchor='middle'%3EМ%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css?v=23">
+</head>
+<body>
+{% set path = request.url.path %}
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="/">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.8 3 3 5.5 6 7M11 5c-.9 3.5-3.6 6.5-7 8M13 21l4-9 4 9M14.5 18h5"/></svg>
+      </span>
+      <span class="brand-text">Хүний эрхийн орчуулагч<small>Англи ↔ Монгол</small></span>
+    </a>
+
+    <button class="menu-btn" id="menuBtn" aria-label="Цэс" aria-expanded="false" aria-controls="mainNav">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+
+    <nav class="main-nav" id="mainNav">
+      <a href="/" class="{{ 'active' if path == '/' }}">Орчуулах</a>
+      <a href="/pricing" class="{{ 'active' if path.startswith('/pricing') or path.startswith('/buy') or path.startswith('/orders') }}">Үнэ</a>
+      {% if user and user.plan == 'admin' %}<a href="/admin" class="{{ 'active' if path.startswith('/admin') }}">Админ самбар</a>{% endif %}
+
+      {% if user %}
+        <div class="user-menu">
+          <button class="user-btn" id="userBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar sm">{{ (user.name or user.email)[:1]|upper }}</span>
+            <span class="user-name">{{ user.name or user.email }}</span>
+            <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown" id="userDrop" hidden>
+            <div class="dd-head">
+              <b>{{ user.name or 'Миний бүртгэл' }}</b>
+              <small>{{ user.email }}</small>
+              <span class="badge plan-{{ user.plan }}">{{ plan_labels.get(user.plan, user.plan) }}</span>
+            </div>
+            <a href="/account">Миний бүртгэл</a>
+            {% if user.plan not in ('admin', 'contributor', 'amnesty_mn') %}<a href="/pricing">Эрх сунгах / авах</a>{% endif %}
+            {% if user.plan == 'admin' %}<a href="/admin">Админ самбар</a>{% endif %}
+            <form method="post" action="/logout"><button class="dd-logout">Гарах</button></form>
+          </div>
+        </div>
+      {% else %}
+        <a href="/login" class="{{ 'active' if path == '/login' }}">Нэвтрэх</a>
+        <a class="btn small" href="/register">Үнэгүй бүртгүүлэх</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+<main class="wrap">{% block content %}{% endblock %}</main>
+<footer class="foot"><span style="font-size:12px">🔒 Таны текстийг хадгалдаггүй, лог-д бичдэггүй, загвар сургахад ашигладаггүй. Оруулсан файлыг орчуулсны дараа шууд устгадаг; орчуулсан файл {{ result_ttl }} цагийн дараа автоматаар устна, түүнийг зөвхөн та татаж авах боломжтой.</span> Зөвхөн хэрэглээний тоог бүртгэнэ. · <a href="/contribute">Сургалтын дата өгөх</a><br><span style="font-size:12px">Машин орчуулга алдаатай байж болно. Шүүх, эрх зүйн болон бусад чухал баримтыг хүнээр хянуулна уу.</span></footer>
+<script>
+  // Утасны цэс
+  const mb = document.getElementById('menuBtn'), nav = document.getElementById('mainNav');
+  mb.addEventListener('click', () => { const o = nav.classList.toggle('open'); mb.setAttribute('aria-expanded', o); });
+  // Хэрэглэгчийн унжих цэс
+  const ub = document.getElementById('userBtn'), ud = document.getElementById('userDrop');
+  if (ub) {
+    ub.addEventListener('click', (e) => { e.stopPropagation(); ud.hidden = !ud.hidden; ub.setAttribute('aria-expanded', !ud.hidden); });
+    document.addEventListener('click', (e) => { if (!ud.contains(e.target)) { ud.hidden = true; ub.setAttribute('aria-expanded', false); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ud.hidden = true; });
+  }
+</script>
+{% include "_attribution.html" %}
+{% include "_donate.html" %}
+</body>
+</html>

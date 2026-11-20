@@ -44,8 +44,9 @@ def evaluate_model(key):
     model.generation_config.forced_bos_token_id = forced_bos_id(tokenizer, cfg)
 
     test_df = pd.read_csv("data/test.csv")
-    sources = test_df["english"].tolist()
-    references = test_df["mongolian"].tolist()
+    src_col, ref_col = ("mongolian", "english") if cfg.get("reverse") else ("english", "mongolian")
+    sources = test_df[src_col].tolist()
+    references = test_df[ref_col].tolist()
 
     predictions = []
     start = time.time()

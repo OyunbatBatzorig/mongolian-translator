@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Алдаа{% endblock %}
+{% block content %}
+<section class="card narrow error-card"><h2>{{ "Хуудас олдсонгүй" if message == "Not Found" else "Алдаа" }}</h2><p>{{ "Таны хайсан хуудас байхгүй байна." if message == "Not Found" else message }}</p><a class="btn" href="/">Нүүр хуудас руу буцах</a></section>
+{% endblock %}

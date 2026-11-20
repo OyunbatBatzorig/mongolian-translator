@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Энгийн сайтын админ · Хүний эрхийн орчуулагч</title>
+  <link rel="stylesheet" href="/static/style.css?v=23">
+  <style>
+    :root { --blue: #1f5fbf; --green: #067647; --red: #b42318; --amber: #b54708; }
+    .ca { padding-bottom: 60px; }
+    .ca h1 { font-size: 24px; margin: 6px 0 2px; }
+    .ca h2 { font-size: 19px; margin: 34px 0 6px; display: flex; align-items: center; gap: 10px; }
+    .ca h2 .num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 14px; display: grid; place-items: center; }
+    .ca .sub { color: var(--muted, #6b7280); margin: 0 0 12px; font-size: 14px; }
+    .ca table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .ca th, .ca td { border-bottom: 1px solid var(--line, #e3e6eb); padding: 9px 8px; text-align: left; vertical-align: top; }
+    .ca th { font-size: 13px; color: var(--muted, #6b7280); font-weight: 600; }
+    .ca .muted { color: var(--muted, #6b7280); font-size: 13px; }
+    .ca .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(127,127,127,.12); white-space: nowrap; }
+    .ca .pill.ready, .pill.owner { background: rgba(31,95,191,.14); color: var(--blue); }
+    .ca .pill.approved, .ca .pill.trained { background: rgba(6,118,71,.14); color: var(--green); }
+    .ca .pill.failed, .ca .pill.rejected { background: rgba(180,35,24,.12); color: var(--red); }
+    .pill.reviewer { background: rgba(181,71,8,.12); color: var(--amber); }
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .ca form.inline { display: inline; }
+    .ca .card { border: 1px solid var(--line, #e3e6eb); border-radius: 14px; padding: 18px; margin: 10px 0; background: var(--card, transparent); }
+    .ca .good { color: var(--green); font-weight: 600; } .ca .bad { color: var(--red); font-weight: 600; }
+    .ca pre { white-space: pre-wrap; font-size: 12px; max-height: 160px; overflow: auto; background: rgba(127,127,127,.08); padding: 8px; border-radius: 8px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 4px; }
+    .kpi { border: 1px solid var(--line, #e3e6eb); border-radius: 14px; padding: 14px 16px; }
+    .kpi b { display: block; font-size: 26px; margin: 4px 0 2px; } .kpi span { font-size: 13px; color: var(--muted, #6b7280); }
+    .flash { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: min(640px, calc(100vw - 32px));
+      border-radius: 12px; padding: 12px 40px 12px 16px; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.18); transition: opacity .4s; }
+    .flash .x { position: absolute; right: 10px; top: 8px; border: 0; background: none; font-size: 18px; cursor: pointer; color: inherit; }
+    .flash.ok { background: #ecfdf3; } .flash.err { background: #fef3f2; }
+    .req2fa { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .req2fa > div { flex: 1 1 380px; } .warn-t { color: var(--amber); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .flash.ok { color: var(--green); } .flash.err { color: var(--red); }
+    .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .opt { position: relative; border: 1.5px solid var(--line, #d0d5dd); border-radius: 12px; padding: 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+    .opt input { position: absolute; opacity: 0; }
+    .opt b { display: block; font-size: 15px; margin-bottom: 4px; }
+    .opt span { font-size: 13px; color: var(--muted, #6b7280); line-height: 1.45; }
+    .opt:has(input:checked) { border-color: var(--blue); background: rgba(31,95,191,.06); box-shadow: 0 0 0 2px rgba(31,95,191,.12); }
+    .opt:has(input:checked) b { color: var(--blue); }
+    .opt:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .step-title { font-weight: 600; margin: 16px 0 8px; font-size: 15px; }
+    .tlist { display: grid; gap: 6px; }
+    .cfm { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15,23,42,.45); backdrop-filter: blur(2px); animation: cfmIn .15s ease-out; }
+    .cfm[hidden] { display: none; }
+    .cfm-box { width: min(440px, 100%); background: var(--bg, #fff); border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.25); padding: 22px 22px 18px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; animation: cfmPop .18s ease-out; }
+    .cfm-ico { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 18px; background: rgba(31,95,191,.12); color: var(--blue); }
+    .cfm.danger .cfm-ico { background: rgba(180,35,24,.12); color: var(--red, #b42318); }
+    .cfm-body b { display: block; font-size: 16px; line-height: 1.4; margin-top: 8px; } .cfm-body .muted { font-size: 13.5px; line-height: 1.55; margin-top: 4px; }
+    .cfm-btns { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .cfm.danger #cfmYes { background: var(--red, #b42318); border-color: var(--red, #b42318); color: #fff; }
+    @keyframes cfmIn { from { opacity: 0; } } @keyframes cfmPop { from { transform: translateY(8px) scale(.98); opacity: 0; } }
+    .rl-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 6px 0; }
+    .rl-bar { height: 10px; border-radius: 99px; background: rgba(127,127,127,.15); margin: 4px 0 6px; overflow: hidden; } .rl-bar > div { height: 100%; background: var(--blue); border-radius: 99px; transition: width .6s ease; }
+    .runprob { border: 1px solid rgba(180,35,24,.35); background: rgba(180,35,24,.05); border-radius: 10px; padding: 10px 14px; margin: 8px 0; font-size: 14px; line-height: 1.55; display: grid; gap: 4px; }
+    .runprob.warn { border-color: rgba(181,71,8,.4); background: rgba(181,71,8,.06); }
+    .runprob[hidden] { display: none; }
+    .infilter { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; margin: 4px 0 10px; padding: 6px; border: 1px solid var(--line, #e3e6eb); border-radius: 12px; background: var(--bg, #fff); }
+    .infilter > * { height: 36px; box-sizing: border-box; margin: 0 !important; }
+    .infilter input, .infilter select { margin: 0 !important; vertical-align: middle; line-height: normal; }
+    .infilter .fdates input { align-self: center; }
+    .infilter input, .infilter select { border: 1px solid transparent; border-radius: 8px; font: inherit; font-size: 14px; background: rgba(127,127,127,.07); padding: 0 10px; color: inherit; }
+    .infilter input:focus, .infilter select:focus { outline: none; border-color: var(--blue); background: var(--bg, #fff); box-shadow: 0 0 0 3px rgba(31,95,191,.12); }
+    .infilter input[type=search] { flex: 1 1 auto; min-width: 140px; }
+    .infilter select { flex: 0 0 210px; width: 210px; cursor: pointer; text-overflow: ellipsis; }
+    .infilter .fdates { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; border-radius: 8px; background: rgba(127,127,127,.07); flex: 0 0 auto; font-size: 13px; color: var(--muted, #6b7280); }
+    .infilter .fdates input { background: transparent; padding: 0 4px; height: 34px; width: 132px; }
+    .infilter .fdates input:focus { box-shadow: none; }
+    .infilter .fcount { flex: 0 0 auto; display: flex; align-items: center; padding: 0 10px; border-radius: 99px; background: rgba(31,95,191,.08); color: var(--blue); font-size: 12.5px; font-weight: 600; white-space: nowrap; height: 26px; }
+    .infilter .linkbtn { flex: 0 0 92px; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+    .infilter .linkbtn[hidden] { display: flex !important; visibility: hidden; }   /* зай нь хэвээр: бусад нь хөдлөхгүй */
+    .infilter .fcount { min-width: 118px; justify-content: center; }
+    @media (max-width: 900px) { .infilter { flex-wrap: wrap; } .infilter input[type=search] { flex-basis: 100%; } }
+    .bleuhelp { margin: 4px 0 12px; } .bleuhelp > summary { cursor: pointer; color: var(--blue); font-size: 14px; }
+    .bleuhelp .bh { margin-top: 8px; padding: 12px 16px; border: 1px solid var(--line, #e3e6eb); border-radius: 12px; background: var(--bg, #fff); font-size: 14px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 32px; }
+    .bleuhelp .bh > div { min-width: 0; } @media (max-width: 900px) { .bleuhelp .bh { grid-template-columns: 1fr; } }
+    .bleuhelp .bh p { margin: 6px 0; } .bh-t { margin: 6px 0 10px; width: 100%; } .bh-t td:first-child { white-space: nowrap; } .bh-t th { text-align: left; } .bh-t td, .bh-t th { padding: 4px 14px 4px 0; font-size: 13.5px; }
+    .logbox.extbox { max-height: 260px; min-height: 0; margin: 6px 0; } .extbox .bh-t { margin: 0; }
+    .dec-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0 4px; }
+    .extadd { margin-top: 6px; } .extadd > summary { cursor: pointer; color: var(--blue); font-weight: 600; font-size: 14px; }
+    .ext-steps { margin: 8px 0; padding-left: 20px; display: grid; gap: 8px; font-size: 13.5px; }
+    .ext-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+    .ext-row select, .ext-row input[type=text], .ext-row input:not([type]) { height: 36px; padding: 0 10px; border: 1px solid var(--line, #d0d5dd); border-radius: 8px; font: inherit; font-size: 14px; margin: 0; }
+    .ext-row > input, .ext-row > select, .ext-row > .btn, .ext-row > a.btn, .ext-row > .filepick, .ext-row > button { height: 40px !important; min-height: 40px; box-sizing: border-box; margin: 0 !important; }
+    .ext-row > input, .ext-row > select { padding: 0 12px !important; }
+    .ext-row > .filepick { padding: 0 10px; display: flex !important; align-items: center; }
+    .ext-row > .btn, .ext-row > button, .ext-row > a.btn { display: inline-flex; align-items: center; padding: 0 16px; }
+    .tests-solo { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, #e3e6eb); }
+    .rl-rem { font-size: 14px; margin: 4px 0 2px; padding: 8px 10px; border-radius: 8px; background: rgba(127,127,127,.06); }
+    .rl-steps { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+    .rl-steps li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 8px; }
+    .rl-steps li.done { color: var(--muted, #6b7280); } .rl-steps li.done .rl-ico { color: var(--green); font-weight: 700; }
+    .rl-steps li.run { background: rgba(31,95,191,.07); font-weight: 600; } .rl-steps li.run .muted { font-weight: 400; }
+    .rl-steps li.todo { color: var(--muted, #6b7280); }
+    pre.runlog { min-height: 6.5em; max-height: 18em; overflow: auto; white-space: pre-wrap; font-size: 12px; line-height: 1.5; }
+    .tp-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .tests-panel { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line, #e3e6eb); border-radius: 10px; background: rgba(127,127,127,.04); }
+    .tp-list { list-style: none; margin: 6px 0 8px; padding: 0; font-size: 13px; } .tp-list li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line, #eef0f3); }
+    .tests-box { margin-top: 16px; border: 1px solid var(--line, #e3e6eb); border-radius: 12px; padding: 0 16px; }
+    .tests-box > summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+    .filepick { display: flex !important; flex-direction: row !important; justify-content: flex-start !important; text-align: left; align-items: center; gap: 10px; border: 1.5px dashed var(--line, #c9ced6); border-radius: 10px; padding: 8px 12px; cursor: pointer; background: var(--bg, #fff); min-height: 40px; box-sizing: border-box; }
+    .filepick:hover { border-color: var(--blue); background: rgba(31,95,191,.04); }
+    .filepick input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .filepick .fp-btn { padding: 4px 10px; border-radius: 8px; background: rgba(31,95,191,.1); color: var(--blue); font-weight: 600; font-size: 13px; white-space: nowrap; }
+    .filepick .fp-name { font-size: 13px; color: var(--muted, #6b7280); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .filepick.has .fp-name { color: inherit; }
+    .mhist { margin-top: 10px; } .logbox.mhbox { max-height: 300px; margin-top: 6px; } .mhist > summary { cursor: pointer; color: var(--blue); font-size: 14px; }
+    .src-list { margin: 6px 0 4px; padding-left: 22px; font-size: 13px; line-height: 1.6; } .src-n { word-break: break-word; }
+    .trow { display: grid; grid-template-columns: minmax(220px, 1.2fr) 2fr 250px; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line, #e3e6eb); }
+    .tname b { display: block; font-size: 14px; } .tname span { font-size: 12px; } .tnew { color: var(--green); font-weight: 600; }
+    .tbar { height: 10px; background: rgba(127,127,127,.12); border-radius: 99px; overflow: hidden; } .tbar div { height: 100%; background: var(--blue); border-radius: 99px; } .tbar div.oth { background: rgba(127,127,127,.45); }
+    .tact { display: flex; gap: 10px; white-space: nowrap; font-size: 13px; justify-content: flex-end; }
+    .logbox.inbox { max-height: 520px; } .inbox td, .inbox th { padding-left: 10px; padding-right: 10px; }
+    .tkw { padding: 10px 12px 12px; margin: -2px 0 4px; background: rgba(127,127,127,.06); border-radius: 10px; font-size: 13px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; } .chip { padding: 2px 9px; border-radius: 99px; background: var(--bg, #fff); border: 1px solid var(--line, #e3e6eb); font-size: 12.5px; }
+    .chip.en { color: var(--muted, #6b7280); }
+    .tkw textarea, .newt input, .newt textarea { display: block; width: 100%; padding: 8px 10px; border: 1px solid var(--line, #d0d5dd); border-radius: 8px; font: inherit; box-sizing: border-box; background: var(--bg, #fff); }
+    .newt textarea, .tkw textarea { min-height: 0; height: 88px; resize: vertical; }
+    .newt { margin-top: 16px; border: 1px solid var(--line, #e3e6eb); border-radius: 12px; padding: 0; }
+    .newt > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; color: var(--blue); list-style: none; } .newt > summary::-webkit-details-marker { display: none; }
+    .newt[open] > summary { border-bottom: 1px solid var(--line, #e3e6eb); }
+    .newt-body { padding: 14px 16px 16px; display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; }
+    .newt-body .fld b { display: block; font-size: 13px; margin-bottom: 4px; } .newt-body .hint { font-size: 12px; color: var(--muted, #6b7280); margin-top: 6px; line-height: 1.5; }
+    .newt-foot { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    @media (max-width: 700px) { .newt-body { grid-template-columns: 1fr; } .tact { justify-content: flex-start; flex-wrap: wrap; } } .linkbtn.danger { color: var(--red); }
+    .sugg { margin-top: 14px; border: 1px dashed rgba(181,71,8,.5); background: rgba(181,71,8,.05); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+    @media (max-width: 700px) { .trow { grid-template-columns: 1fr; } }
+    .rec { border: 1px solid rgba(181,71,8,.35); background: rgba(181,71,8,.06); border-radius: 12px; padding: 14px 16px; margin-bottom: 6px; }
+    .rec-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; } .rec-ico { font-size: 18px; }
+    .rec ul { margin: 10px 0 0; padding-left: 20px; line-height: 1.6; font-size: 14px; }
+    .pctbar { position: relative; height: 10px; border-radius: 99px; background: rgba(127,127,127,.15); margin: 10px 0 2px; max-width: 420px; }
+    .pctbar > div { height: 100%; border-radius: 99px; background: var(--amber); }
+    .pctbar { margin: 26px 0 24px; max-width: none; height: 12px; }
+    .pctbar .ptick { position: absolute; top: 13px; font-size: 11px; color: var(--muted, #6b7280); transform: translateX(-50%); white-space: nowrap; }
+    .pctbar .ptick[style="left:0"] { transform: none; } .pctbar .ptick[style="left:100%"] { transform: translateX(-100%); }
+    .pctbar .p10::before { content: ""; position: absolute; left: 50%; top: -15px; width: 2px; height: 14px; background: rgba(127,127,127,.6); }
+    .pctbar .pmark { position: absolute; top: -20px; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--amber); white-space: nowrap; }
+    .formula { display: block; font-style: normal; margin-top: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(127,127,127,.08); font-size: 12px; color: var(--text, inherit); line-height: 1.5; }
+    .eta { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: var(--blue); margin-top: 2px; }
+    .eta::before { content: "⏱ ≈ "; font-weight: 400; }
+    .info { margin: 10px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--muted, #6b7280); }
+    .recb { display: inline-block; font-size: 11px; font-weight: 600; color: var(--amber); background: rgba(181,71,8,.1); border-radius: 99px; padding: 1px 8px; margin-left: 4px; vertical-align: middle; }
+    .summary { position: static; top: auto; background: rgba(31,95,191,.06); border-radius: 12px; padding: 14px 16px; margin: 16px 0; line-height: 1.65; font-size: 14px; }
+    .btn.big { padding: 12px 26px; font-size: 16px; border-radius: 10px; }
+    details summary { cursor: pointer; color: var(--blue); font-size: 13px; margin-top: 8px; }
+    .row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; align-items: end; }
+    .row2 label { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+    .row2 input { margin: 0; height: 42px; padding: 0 10px; border: 1px solid var(--line, #d0d5dd); border-radius: 8px; font: inherit; width: 100%; box-sizing: border-box; }
+    .row2 .btn { height: 42px; margin: 0; padding-top: 0; padding-bottom: 0; }
+    @media (max-width: 700px) { .ca table { display: block; overflow-x: auto; } }
+    .linkbtn { background: none; border: 0; padding: 0; color: var(--blue); font: inherit; font-size: 13px; cursor: pointer; }
+    dialog.pop { border: 0; border-radius: 16px; padding: 0; width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 60px); box-shadow: 0 20px 60px rgba(0,0,0,.25); background: var(--card, #fff); color: inherit; }
+    dialog.pop::backdrop { background: rgba(16,24,40,.45); }
+    .pop-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--line, #e3e6eb); position: sticky; top: 0; background: inherit; }
+    .pop-ctl { padding: 14px 20px 12px; border-bottom: 1px solid var(--line, #e3e6eb); background: rgba(31,95,191,.04); }
+    .tabs2 { display: flex; gap: 4px; margin-top: 8px; }
+    .tab2 { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer; color: var(--muted, #6b7280); }
+    .tab2.on { background: rgba(31,95,191,.1); color: var(--blue); font-weight: 600; }
+    .thr-top { display: flex; justify-content: space-between; align-items: end; gap: 10px; }
+    .thr-big { font-size: 22px; color: var(--blue); } .thr-count { text-align: right; }
+    #thr { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 99px; margin: 12px 0 6px; cursor: pointer; display: block;
+      background: linear-gradient(90deg, rgba(127,127,127,.25) 0 calc(var(--p, .66) * (100% - 22px) + 11px), var(--blue) 0); }
+    #thr::-moz-range-track { background: transparent; }
+    .hb-inc, .hb-exc { transition: height .25s ease; }
+    #thr::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+    #thr::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--blue); }
+    #thr:disabled { opacity: .5; cursor: not-allowed; }
+    .thr-scale { display: flex; justify-content: space-between; font-size: 12px; }
+    .thr-info { margin: 10px 0; font-size: 14px; line-height: 1.6; } .warn-t { color: var(--amber); }
+    .thr-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .flow { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+    .fl { flex: 1 1 140px; border: 1px solid var(--line, #e3e6eb); border-radius: 12px; padding: 10px 14px; }
+    .fl span { display: block; font-size: 12px; color: var(--muted, #6b7280); } .fl b { font-size: 22px; }
+    .fl.hi { border-color: var(--blue); background: rgba(31,95,191,.06); } .fl.hi b { color: var(--blue); }
+    .flow .arr { align-self: center; color: var(--muted, #6b7280); }
+    .pop-body h4 { margin: 18px 0 4px; font-size: 15px; }
+    .hist { display: flex; gap: 6px; align-items: end; height: 150px; padding: 4px 0; }
+    .hb { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+    .hb-bar { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: end; }
+    .hb-inc { background: var(--blue); border-radius: 4px 4px 0 0; } .hb-exc { background: rgba(127,127,127,.3); border-radius: 4px 4px 0 0; }
+    .hb-n { font-size: 11px; color: var(--muted, #6b7280); height: 14px; } .hb-l { font-size: 11px; }
+    .lg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: middle; } .lg.inc { background: var(--blue); } .lg.exc { background: rgba(127,127,127,.3); }
+    .rs { display: grid; grid-template-columns: minmax(200px, 1.3fr) 2fr 44px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line, #e3e6eb); }
+    .rs-l b { display: block; font-size: 14px; } .rs-l span { font-size: 12px; }
+    .rs-bar { height: 10px; background: rgba(127,127,127,.12); border-radius: 99px; overflow: hidden; } .rs-bar div { height: 100%; background: var(--amber); opacity: .7; border-radius: 99px; }
+    .rs-n { text-align: right; font-weight: 600; }
+    .logbox { max-height: 440px; overflow-y: auto; border: 1px solid var(--line, #e3e6eb); border-radius: 12px; }
+    #logBox, #inBox { min-height: 240px; }
+    .logbox thead th { position: sticky; top: 0; background: var(--bg, #fff); z-index: 1; }
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .segb { border: 1px solid var(--line, #d0d5dd); background: none; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+    .segb.on { border-color: var(--blue); background: rgba(31,95,191,.08); color: var(--blue); font-weight: 600; }
+    @media (max-width: 640px) { .rs { grid-template-columns: 1fr 60px; } .rs-bar { display: none; } }
+    .pop-body { padding: 12px 20px 20px; overflow: auto; max-height: calc(100vh - 140px); font-size: 14px; }
+    .pop-body table { width: 100%; border-collapse: collapse; } .pop-body td, .pop-body th { border-bottom: 1px solid var(--line, #e3e6eb); padding: 8px; text-align: left; vertical-align: top; }
+    .topnav { display: flex; gap: 14px; align-items: center; margin-left: auto; flex-wrap: wrap; font-size: 14px; }
+  </style>
+</head>
+<body>
+{% macro tests_block() %}<div class="tp-head"><span id="tpList">{% for n, label, req in builtin_tests if n not in tests_off %}{{ label }}, {% endfor %}FLORES{% for ct in custom_tests if not ct.off %}, <b>{{ ct.name }}</b>{% endfor %}</span><button type="button" class="btn secondary small" id="tpToggle" aria-expanded="false">✎ Шалгалт засах</button></div>
+            <div class="muted" style="font-size:12px;margin-top:4px">Шалгалтын бүх материал сургалтаас автоматаар хасагдана. Хэрэв хэн нэгэн шалгалтын өгүүлбэрийг илгээсэн ч сургалтад орохгүй, тиймээс загвар "хуурамчаар" сайн харагдахгүй.</div>
+            <div class="tests-panel" id="tests" hidden>
+              <div id="tpMsg" style="font-size:13px;margin-bottom:6px" hidden></div>
+              <b style="font-size:13px">Үндсэн шалгалтууд</b>
+              <ul class="tp-list">{% for n, label, req in builtin_tests %}
+                <li><span>{% if n in tests_off %}<s class="muted">{{ label }}</s> <span class="muted">· унтраасан</span>{% else %}{{ label }}{% endif %}{% if req %} <span class="muted">· заавал (загвар солих шийдвэр үүн дээр гардаг)</span>{% endif %}</span>
+                  {% if not req and user.role == 'owner' %}<button form="tg-{{ loop.index }}" class="linkbtn">{{ 'асаах' if n in tests_off else 'унтраах' }}</button>{% endif %}</li>{% endfor %}
+              </ul>
+              <div class="muted" style="font-size:12px;margin:-2px 0 10px">Үндсэн шалгалтуудыг устгахгүй, зөвхөн унтраана (өмнөх бүх үр дүнтэй харьцуулах суурь тул).</div>
+              <b style="font-size:13px">Өөрийн шалгалтын материал</b>
+              {% if custom_tests %}<ul class="tp-list">{% for ct in custom_tests %}
+                <li><span>{% if ct.off %}<s class="muted">{{ ct.name }}</s> <span class="muted">· унтраасан</span>{% else %}{{ ct.name }}{% endif %} <span class="muted">· {{ "{:,}".format(ct.n) }} хос · {{ ct.at[:10] }}</span></span>
+                  {% if user.role == 'owner' %}<span><button form="ct-off-{{ loop.index }}" class="linkbtn">{{ 'асаах' if ct.off else 'унтраах' }}</button>
+                  <button form="ct-del-{{ loop.index }}" class="linkbtn danger">устгах</button></span>{% endif %}</li>{% endfor %}</ul>
+              {% else %}<p class="muted" style="font-size:13px;margin:4px 0 8px">Одоогоор нэмээгүй.</p>{% endif %}
+              {% if user.role == 'owner' %}
+              <div class="row2" style="grid-template-columns:1fr 1.3fr auto;align-items:end">
+                <label class="muted">Нэр<input form="tadd" type="text" name="name" maxlength="80" placeholder="жишээ нь: Шүүхийн шийдвэр 2026" required></label>
+                <div class="muted">Файл: CSV / XLSX (англи + монгол, 100+ хос)
+                  <label class="filepick" style="position:relative;margin-top:4px"><input form="tadd" type="file" name="file" accept=".csv,.xlsx" required
+                    onchange="const n=this.files[0]?this.files[0].name:'Файл сонгоогүй';this.closest('.filepick').querySelector('.fp-name').textContent=n;this.closest('.filepick').classList.toggle('has',!!this.files[0])">
+                    <span class="fp-btn">📎 Файл сонгох</span><span class="fp-name">Файл сонгоогүй</span></label></div>
+                <div><button form="tadd" class="btn secondary small">+ Нэмэх</button></div>
+              </div>
+              <p class="muted" style="font-size:12px;margin:6px 0 0">Зөвхөн <b>шалгалтад</b> ашиглана, сургалтад хэзээ ч орохгүй. Сургалтын датанаас өөр, найдвартай хүний орчуулга байх ёстой.</p>
+              {% endif %}
+            </div>{% endmacro %}
+
+<header class="top"><div class="top-inner">
+  <a class="brand" href="/simple"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.8 3 3 5.5 6 7M11 5c-.9 3.5-3.6 6.5-7 8M13 21l4-9 4 9M14.5 18h5"/></svg></span>
+  <span class="brand-text">Хүний эрхийн орчуулагч<small>Энгийн сайтын админ</small></span></a>
+  <nav class="topnav">
+    <a href="/simple">Орчуулагч</a><a href="/contribute">Дата өгөх хуудас</a>
+    <span><span class="pill {{ user.role }}">{{ user.role_label }}</span> <span class="muted">{{ user.email }}</span></span>
+    <form method="post" action="/simple/admin/logout" style="display:inline"><button class="btn secondary small">Гарах</button></form>
+  </nav>
+</div></header>
+<main class="wrap ca">
+  <h1>Сургалтын дата ба загвар</h1>
+  <p class="sub">Хүмүүсийн илгээсэн орчуулгыг шалгаж зөвшөөрөх, орчуулагчийг сургах, шинэ загвар руу шилжих.</p>
+  {% if msg %}<div class="flash ok" role="status">✓ {{ msg }}<button class="x" type="button" aria-label="Хаах" onclick="this.parentNode.remove()">×</button></div>{% endif %}
+  {% if err %}<div class="flash err" role="alert">✗ {{ err }}<button class="x" type="button" aria-label="Хаах" onclick="this.parentNode.remove()">×</button></div>{% endif %}
+  <script>setTimeout(() => document.querySelectorAll('.flash.ok').forEach((f) => { f.style.opacity = 0; setTimeout(() => f.remove(), 500); }), 6000);
+    try { if (location.search.includes('msg=') || location.search.includes('err=')) history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}</script>
+
+  {% set to_check = rows|selectattr('status','equalto','ready')|list|length %}
+  <div class="kpis">
+    <div class="kpi"><span>Шалгах хүлээж буй</span><b>{{ to_check }}</b><span>илгээлт</span></div>
+    <div class="kpi"><span>Сургалтад бэлэн</span><b>{{ "{:,}".format(approved) }}</b><span>зөвшөөрсөн хос</span></div>
+    <div class="kpi"><span>Нийт илгээлт</span><b>{{ rows|length }}</b><span>баталгаажсан</span></div>
+    <div class="kpi"><span>Одоогийн загвар · сүүлд шинэчилсэн</span>
+      <b style="font-size:15px;margin-top:8px;line-height:1.6">EN→MN: {{ updated['en-mn'] or '—' }}<br>MN→EN: {{ updated['mn-en'] or '—' }}</b>
+      <span>{{ current['en-mn'].split('/')[0] }} · {{ current['mn-en'].split('/')[0] }}</span></div>
+  </div>
+
+  {% if test_mode %}
+  <h2>Баталгаажуулах кодууд <span class="pill ready">туршилтын горим</span></h2>
+  <p class="sub">Имэйл (SMTP) тохируулаагүй тул код имэйлээр очихгүй. Туршихдаа кодыг эндээс хуулж /contribute хуудсанд оруулна. SMTP тохируулмагц энэ хэсэг алга болно.</p>
+  {% if not pending %}<p class="muted">Одоогоор хүлээгдэж буй код алга.</p>{% else %}
+  <table><tr><th>Огноо</th><th>Хэн</th><th>6 оронтой код</th></tr>
+    {% for p in pending %}<tr><td class="muted">{{ p.created_at[:16].replace('T', ' ') }}</td><td>{{ p.name }}<br><span class="muted">{{ p.email }}</span></td>
+      <td><b style="font-size:20px;letter-spacing:3px">{{ p.code or '—' }}</b></td></tr>{% endfor %}
+  </table>{% endif %}
+  {% endif %}
+
+  <h2><span class="num">1</span>Ирсэн дата</h2>
+  <p class="sub">Илгээлт бүрийг автоматаар тэгшилж шүүсэн. "Жишээ" дарж орчуулгын чанарыг нүдээрээ шалгаад зөвшөөрнө үү. Зөвшөөрөх нь сургалтыг шууд эхлүүлэхгүй.</p>
+  <details class="bleuhelp"><summary>ⓘ LaBSE (Таарц) оноог хэрхэн ойлгох вэ?</summary>
+    <div class="bh"><div>
+      <p><b>Таарц</b> (0–100%) нь англи, монгол өгүүлбэр хоёрыг <b>LaBSE</b> загвараар embedding болгоод хэр "ойролцоо" (cosine similarity) байгааг хэмждэг. Энэ нь өгүүлбэр хоёр <b>бие биенийхээ орчуулга мөн эсэхийг</b> таах оноо — орчуулгын чанар, найруулгын зөв буруу биш.</p>
+      <table class="bh-t"><tr><th>Таарц</th><th>Ерөнхийдөө юу гэсэн үг вэ</th></tr>
+        <tr><td>70-аас бага</td><td>Хос биш байх магадлалтай (зэрэгцүүлэлтийн алдаа)</td></tr>
+        <tr><td>70–85</td><td>Эргэлзээтэй, нягт шалгах хэрэгтэй</td></tr>
+        <tr><td>85–92</td><td>Жинхэнэ орчуулгын хос байх магадлал өндөр (анхны босго 85%)</td></tr>
+        <tr><td>92+</td><td>Маш өндөр таарц, бараг гарцаагүй зөв хос</td></tr></table>
+      </div><div>
+      <p class="muted" style="font-size:13px"><b>Анхаар:</b> Таарц өндөр байх нь орчуулга <i>сайн</i> гэсэн үг биш — зөвхөн хоёр өгүүлбэр ойролцоо утгатай гэдгийг л баталгаажуулна. Богино, загвар мэт давтагддаг өгүүлбэр (огноо, тоо, нэр г.м.) санамсаргүй өндөр оноо авч болно. Харин доогуур оноо нь ихэвчлэн орчуулгын алдаа биш, PDF/баримтаас өгүүлбэр салгахад гарсан <b>зэрэгцүүлэлтийн алдаа</b> (мисалайнмент) байдаг.</p>
+      <p class="muted" style="font-size:13px">Илгээлт бүрийн босгыг доорх слайдераар өөрчилж, аль хос орохыг шууд харж болно. Шийдвэр гаргахаасаа өмнө "Жишээ" дээр хэдэн хосыг нүдээрээ шалгаарай.</p>
+      </div>
+    </div>
+  </details>
+  {% if not rows %}<p class="muted">Одоогоор ирсэн дата алга.</p>{% else %}
+  <div class="infilter" role="search">
+    <input type="search" id="fQ" placeholder="🔍 Нэр, имэйл, байгууллага, файлаар хайх" aria-label="Хайх">
+    <select id="fSt" aria-label="Төлөв"><option value="">Бүх төлөв</option>{% for k, v in status_labels.items() if k != 'unverified' %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+    <span class="fdates">📅<input type="date" id="fFrom" aria-label="Эхлэх огноо" title="-аас">–<input type="date" id="fTo" aria-label="Дуусах огноо" title="хүртэл"></span>
+    <button type="button" class="linkbtn" id="fClear" hidden>✕ Цэвэрлэх</button>
+    <span class="fcount" id="fCount"></span>
+  </div>
+  <div class="logbox inbox" id="inBox">
+  <table>
+    <thead><tr><th>Огноо</th><th>Хэн</th><th>Файл</th><th>Тохирсон хос</th><th>Төлөв</th><th></th></tr></thead>
+    {% for r in rows %}
+    <tr class="inrow" data-st="{{ r.status }}" data-d="{{ r.created_at[:10] }}" data-q="{{ (r.name ~ ' ' ~ r.email ~ ' ' ~ (r.org or '') ~ ' ' ~ (r.files|map(attribute='name')|join(' ')))|lower }}" {% if r.id == view %}style="background:rgba(31,95,191,.05)"{% endif %}>
+      <td class="muted">{{ r.created_at[:16].replace('T', ' ') }}</td>
+      <td>{{ r.name }}<br><span class="muted">{{ r.email }}{% if r.org %} · {{ r.org }}{% endif %}</span></td>
+      <td class="muted">{% for f in r.files[:4] %}{{ f.name }}<br>{% endfor %}{% if r.files|length > 4 %}… нийт {{ r.files|length }} файл{% endif %}</td>
+      <td><b>{{ "{:,}".format(r.n_pairs or 0) }}</b> хос<br><span class="muted">босго {{ '85' if r.min_sim is none or r.min_sim < 0 else ((r.min_sim * 100)|round|int|string) }}%</span>
+        {% if r.message and r.status == 'failed' %}<br><span class="muted">{{ r.message[:160] }}</span>{% elif r.message %}<br><button type="button" class="linkbtn" data-detail="{{ r.id }}" data-name="{{ r.name }}">дэлгэрэнгүй</button>{% endif %}</td>
+      <td><span class="pill {{ r.status }}">{{ status_labels.get(r.status, r.status) }}</span>
+        {% if r.decided_by %}<br><span class="muted">{{ r.decided_by }}</span>{% endif %}</td>
+      <td style="white-space:nowrap">
+        {% if r.n_pairs or r.status in ('ready', 'approved', 'rejected') %}<a class="btn secondary small" href="/simple/admin?view={{ r.id }}" data-sample="{{ r.id }}" data-name="{{ r.name }}">Жишээ · босго</a>{% endif %}
+        {% if r.status in ('ready', 'rejected') %}
+        <form class="inline" method="post" action="/simple/admin/decide"><input type="hidden" name="cid" value="{{ r.id }}"><input type="hidden" name="action" value="approve"><button class="btn small">✓ Зөвшөөрөх</button></form>{% endif %}
+        {% if r.status in ('ready', 'approved') %}
+        <form class="inline" method="post" action="/simple/admin/decide"><input type="hidden" name="cid" value="{{ r.id }}"><input type="hidden" name="action" value="reject"><button class="btn secondary small">✗ Татгалзах</button></form>{% endif %}
+        {% if r.status == 'trained' %}
+        <form class="inline" method="post" action="/simple/admin/decide" title="Сургалт амжилтгүй болсон эсвэл дахин сургах бол" onsubmit="return askConfirm(event, 'Энэ илгээлтийг дахин сургалтад оруулах уу? Аль хэдийн сургалтад орсон тул дараагийн сургалтад дахин &quot;шинэ дата&quot; болж орно. Зөвхөн сургалт амжилтгүй болсон эсвэл зориуд дахин сургах бол ашиглана. Дараа нь &quot;↩ Буцаах&quot; товчоор болиулж болно.')"><input type="hidden" name="cid" value="{{ r.id }}"><input type="hidden" name="action" value="approve"><button class="btn secondary small">↻ Дахин сургалтад оруулах</button></form>{% endif %}
+        {% if r.trained_in and r.status in ('approved', 'rejected', 'ready') %}
+        <div class="muted" style="font-size:12px;margin-top:4px;white-space:normal">Өмнө нь сургалтад орсон ({{ r.trained_in[8:12] }}-{{ r.trained_in[12:14] }}-{{ r.trained_in[14:16] }}).</div>
+        <form class="inline" method="post" action="/simple/admin/decide"><input type="hidden" name="cid" value="{{ r.id }}"><input type="hidden" name="action" value="restore"><button class="btn secondary small">↩ Буцаах ("Сургалтад орсон" төлөвт)</button></form>{% endif %}
+        {% if r.status == 'failed' %}
+        <form class="inline" method="post" action="/simple/admin/decide"><input type="hidden" name="cid" value="{{ r.id }}"><input type="hidden" name="action" value="retry"><button class="btn secondary small">↻ Дахин боловсруулах</button></form>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  <tr id="fNone" hidden><td colspan="6" class="muted" style="text-align:center;padding:18px">Шүүлтэд тохирох илгээлт алга.</td></tr>
+  </table></div>
+{% endif %}
+
+  {% if view %}
+  <div class="card" id="sample">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <b>Жишээ хосууд (санамсаргүй 12)</b>
+      <span><a class="btn secondary small" href="/simple/admin?view={{ view }}&s={{ range(1, 1000000)|random }}" onclick="try{sessionStorage.setItem('keepY', scrollY)}catch(e){}">↻ Өөр жишээ</a>
+      <a class="btn secondary small" href="/simple/admin">✕ Хаах</a></span>
+    </div>
+    <table style="margin-top:8px"><tr><th>English</th><th>Монгол</th><th>Таарц</th></tr>
+      {% for p in sample %}<tr><td>{{ p.english }}</td><td>{{ p.mongolian }}</td><td>{{ (p.labse_sim * 100)|round|int }}%</td></tr>{% endfor %}
+    </table>
+  </div>{% endif %}
+
+  <h2 id="topics">Датаны агуулга (сэдвээр)</h2>
+  <p class="sub">Бүх сургалтын дата болон шинэ илгээлтийг <b>агуулгаар нь</b> автоматаар ангилсан. Баримт (тайлан, хууль, илгээлт) бүрт сэдэв бүрийн <b>түлхүүр үг</b> хэр олон гарч байгааг тоолж, хамгийн их давтагдсан сэдэвт оруулна. Гадны AI, интернэт шаардахгүй.
+    Аль ч сэдэвт тод хамаарахгүй, олон сэдэвт ерөнхий текст (жишээ нь ерөнхий ярианы корпус) <b>"Бусад"</b>-д орно.</p>
+  <div class="card">
+  {% if not tstate %}
+    <p style="margin:0">{% if trunning %}⏳ Анхны ангилал хийгдэж байна. Хэдэн минутын дараа хуудсаа шинэчилнэ үү.{% else %}Ангилал хараахан хийгдээгүй.
+      <form class="inline" method="post" action="/simple/admin/topics/refresh"><button class="btn small">Одоо ангилах</button></form>{% endif %}</p>
+  {% else %}
+    {% set tot = tstate.total %}
+    <div class="muted" style="font-size:13px;margin-bottom:8px">Нийт {{ "{:,}".format(tot) }} мөр · шинэчилсэн {{ tstate.updated[:16].replace('T', ' ') }} (UTC)
+      {% if trunning %}· <b style="color:var(--amber)">⏳ дахин ангилж байна…</b>{% else %}
+      · <form class="inline" method="post" action="/simple/admin/topics/refresh"><button class="linkbtn">↻ дахин ангилах</button></form>{% endif %}</div>
+    {% set mx = tstate.train.values()|max %}
+    <div class="tlist">
+    {% set ordered = [] %}{% for tid in tstate.order if tid != 'other' %}{% set _ = ordered.append((tstate.train.get(tid, 0), tid)) %}{% endfor %}
+    {% for _n, tid in (ordered|sort(reverse=true)) + [(0, 'other')] %}{% set n = tstate.train.get(tid, 0) %}{% set nn = tstate.new.get(tid, 0) %}
+      <div class="trow">
+        <div class="tname"><b>{{ tstate.names.get(tid, tid) }}</b>
+          <span class="muted">{{ "{:,}".format(n) }} мөр · {{ (100 * n / tot)|round(1) }}% · {{ tstate.docs.get(tid, 0) }} баримт{% if nn %} · <span class="tnew" title="Зөвшөөрсөн, дараагийн сургалтад орно">+{{ "{:,}".format(nn) }} шинэ</span>{% endif %}{% set np = (tstate.pending or {}).get(tid, 0) %}{% if np %} · <span class="muted" title="Босгоо давсан ч хараахан зөвшөөрөөгүй">+{{ "{:,}".format(np) }} хүлээгдэж буй</span>{% endif %}</span></div>
+        <div class="tbar"><div style="width:{{ (100 * n / mx)|round(1) }}%"{% if tid == 'other' %} class="oth"{% endif %}></div></div>
+        <div class="tact">
+          <button type="button" class="linkbtn" data-tsample="{{ tid }}" data-tname="{{ tstate.names.get(tid, tid) }}">жишээ</button>
+          {% if tid != 'other' %}
+          <form class="inline" method="post" action="/simple/admin/topics/rename" onsubmit="const v=prompt('Шинэ нэр (дата нь хэвээр үлдэнэ):', this.dataset.n); if(!v) return false; this.name.value=v; return true;" data-n="{{ tstate.names.get(tid, tid) }}">
+            <input type="hidden" name="tid" value="{{ tid }}"><input type="hidden" name="name"><button class="linkbtn">нэр солих</button></form>
+          <button type="button" class="linkbtn" data-kw="{{ tid }}" aria-expanded="false">түлхүүр үг ▾</button>
+          <form class="inline" method="post" action="/simple/admin/topics/delete" onsubmit='return askConfirm(event, {{ ("\"" ~ tstate.names.get(tid, tid) ~ "\" сэдвийг устгах уу? Түүний " ~ "{:,}".format(n) ~ " мөр хамгийн ойр бусад сэдэв рүү, ойр сэдэв байхгүй бол \"Бусад\" руу автоматаар шилжинэ. Дата устахгүй.")|tojson }})'>
+            <input type="hidden" name="tid" value="{{ tid }}"><button class="linkbtn danger">устгах</button></form>
+          {% endif %}
+        </div>
+      </div>
+      {% if tid != 'other' %}{% set kws = tstate.keywords.get(tid) or [] %}
+      <div class="tkw" id="kw-{{ tid }}" hidden>
+        <span class="muted">Энэ үгс баримтад олон гарвал энэ сэдэвт оруулна ({{ kws|length }} үг, монгол ба англи):</span>
+        <div class="chips">{% for k in kws %}<span class="chip{% if k[:1] and k[:1].lower() in 'abcdefghijklmnopqrstuvwxyz' %} en{% endif %}">{{ k }}</span>{% endfor %}</div>
+        <details><summary class="linkbtn" style="display:inline">✎ засах</summary>
+          <form method="post" action="/simple/admin/topics/keywords" style="margin-top:8px;display:grid;gap:8px;max-width:640px">
+            <input type="hidden" name="tid" value="{{ tid }}">
+            <textarea name="keywords" rows="3" required>{{ kws|join(', ') }}</textarea>
+            <div><button class="btn small">Хадгалах</button> <span class="muted">Таслалаар тусгаарлана. Хадгалсны дараа дахин ангилна.</span></div>
+          </form></details>
+      </div>{% endif %}
+    {% endfor %}
+    </div>
+    {% for sg in tstate.suggestions %}
+    <div class="sugg">
+      <div><b>💡 Шинэ сэдэв санал болгож байна</b> <span class="muted">· "Бусад" дотор {{ "{:,}".format(sg.n) }} мөр ({{ sg.share }}%), {{ sg.docs|length }} баримт ижил төрлийн агуулгатай байна</span></div>
+      <div class="muted" style="margin:6px 0">Түлхүүр үгс: <b>{{ sg.keywords|join(', ') }}</b></div>
+      <details><summary>Жишээ өгүүлбэрүүд</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55">
+        {% for e in sg.examples[:6] %}<li>{{ e.mn }}<br><span class="muted">{{ e.en }}</span></li>{% endfor %}</ul></details>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <form class="inline" method="post" action="/simple/admin/topics/suggest" onsubmit="const v=prompt('Шинэ сэдвийн нэр (жишээ нь: {{ sg.keywords[:2]|join(', ') }}):'); if(!v) return false; this.name.value=v; return true;">
+          <input type="hidden" name="sid" value="{{ sg.sid }}"><input type="hidden" name="action" value="accept"><input type="hidden" name="name">
+          <button class="btn small">+ Сэдэв болгон нэмэх</button></form>
+        <form class="inline" method="post" action="/simple/admin/topics/suggest"><input type="hidden" name="sid" value="{{ sg.sid }}"><input type="hidden" name="action" value="dismiss">
+          <button class="btn secondary small">Хэрэггүй, "Бусад"-д үлдээх</button></form>
+      </div>
+    </div>
+    {% endfor %}
+    <details class="newt"><summary>+ Шинэ сэдэв нэмэх</summary>
+      <form method="post" action="/simple/admin/topics/add" class="newt-body">
+        <label class="fld"><b>1. Сэдвийн нэр</b>
+          <input name="name" maxlength="60" required placeholder="жишээ нь: Хөгжлийн бэрхшээл">
+          <div class="hint">Админуудад харагдах нэр. Дараа нь солиж болно.</div></label>
+        <label class="fld"><b>2. Түлхүүр үгс</b>
+          <textarea name="examples" rows="3" required placeholder="хөгжлийн бэрхшээл, тэргэнцэр, хараагүй, disabilit, wheelchair"></textarea>
+          <div class="hint">Таслалаар тусгаарлана. Монгол, англи хоёуланг нь 10–20 орчим бичвэл сайн (хамгийн багадаа 2). Үгийн эхлэл хангалттай: <i>disabilit</i> → disability, disabilities.</div></label>
+        <div class="newt-foot"><button class="btn">Сэдэв нэмэх</button><span class="muted" style="font-size:13px">Нэмсний дараа бүх датаг автоматаар дахин ангилна (хэдэн минут).</span></div>
+      </form>
+    </details>
+  {% endif %}
+  </div>
+
+  <h2><span class="num">2</span>Сургалт</h2>
+  <p class="sub">Зөвшөөрсөн датаг ашиглан одоогийн орчуулагчийг цааш нь сургана. Сургалтын үеэр сайт хэвийн ажиллана.</p>
+  <div class="card">
+  {% if not approved and busy %}
+    <p style="margin:0">⏳ Сургалт явж байна. Зөвшөөрсөн бүх дата энэ сургалтад орсон тул одоогоор шинэ сургалт эхлүүлэх дата алга. Явцыг доорх <b>"Сургалтын түүх"</b> хэсгээс харна уу. Цаашид шинэ илгээлт зөвшөөрвөл дараагийн сургалтад орно.</p>
+  {% elif not approved %}
+    <p style="margin:0">Шинэ сургалт эхлүүлэх дата алга: зөвшөөрсөн илгээлт бүгд өмнөх сургалтуудад орсон эсвэл одоогоор зөвшөөрсөн илгээлт байхгүй. Шинэ илгээлт ирвэл дээрх <b>"Ирсэн дата"</b> хэсгээс шалгаж <b>✓ Зөвшөөрөх</b> дарна уу.</p>
+  {% elif busy %}
+    <p class="bad" style="margin:0">Яг одоо өөр сургалт (эсвэл GPU ашигласан ажил) явж байна. Дууссаны дараа эхлүүлнэ үү.</p>
+  {% else %}
+    {% if rec %}
+    <div class="rec">
+      <div class="rec-head"><span class="rec-ico">💡</span><b>Санал болголт</b>
+        <span class="muted">· шинэ дата одоогийн датаны <b>{{ rec.pct_str }}</b> ({{ "{:,}".format(approved) }} / {{ "{:,}".format(plan.totals['en-mn']) }} мөр)</span></div>
+      {% set p = [rec.pct, 100]|min %}{% set pos = p %}
+      <div class="pctbar" title="0–10%: нэмэлт сургалт · 10%-иас дээш: бүтэн сургалт">
+        <div style="width:{{ [pos, 0.8]|max }}%"></div>
+        <span class="pmark" style="left:{{ [pos, 0.8]|max }}%;{% if pos > 92 %}transform:translateX(-100%){% elif pos < 5 %}transform:none{% endif %}">{{ rec.pct_str }}</span>
+        <span class="ptick" style="left:0">0%</span>
+        <span class="ptick p10" style="left:10%">10% · бүтэн сургалт</span>
+        <span class="ptick" style="left:50%">50%</span>
+        <span class="ptick" style="left:100%">100%</span></div>
+      <ul>{% for r in rec.reasons %}<li>{{ r|safe }}</li>{% endfor %}</ul>
+      <p class="muted" style="margin:6px 0 0">Доорх сонголтуудыг санал болгосноор нь урьдчилан тохируулсан (<span class="recb">санал болгосон</span> тэмдэгтэй). Хүсвэл өөрчилж болно.</p>
+    </div>
+    {% endif %}
+    <form method="post" action="/simple/admin/train" id="trainForm" onsubmit="return askConfirm(event, 'Сургалт эхлүүлэх үү?')">
+      <div class="step-title">а) Аль чиглэлийн орчуулгыг сайжруулах вэ?</div>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="directions" value="en-mn" {% if not rec or rec.directions == 'en-mn' %}checked{% endif %}><b>Англи → Монгол{% if rec and rec.directions == 'en-mn' %} <span class="recb">санал болгосон</span>{% endif %} <em class="eta" data-k="d" data-v="en-mn"></em></b><span>Англи текстийг монгол руу орчуулах чадварыг сайжруулна. Ихэнх хэрэглэгчид энэ чиглэлийг ашигладаг.</span></label>
+        <label class="opt"><input type="radio" name="directions" value="mn-en"><b>Монгол → Англи <em class="eta" data-k="d" data-v="mn-en"></em></b><span>Монгол текстийг англи руу орчуулах чадварыг сайжруулна.</span></label>
+        <label class="opt"><input type="radio" name="directions" value="en-mn,mn-en" {% if rec and rec.directions == 'en-mn,mn-en' %}checked{% endif %}><b>Хоёулаа{% if rec and rec.directions == 'en-mn,mn-en' %} <span class="recb">санал болгосон</span>{% endif %} <em class="eta" data-k="d" data-v="en-mn,mn-en"></em></b><span>Нэг нэгээр нь дараалан сургана. Хугацаа нь 2 дахин урт.</span></label>
+      </div>
+      <div class="step-title">б) Сургалтын төрөл</div>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="mode" value="add" {% if not rec or rec.mode == 'add' %}checked{% endif %}><b>Нэмэлт сургалт{% if rec and rec.mode == 'add' %} <span class="recb">санал болгосон</span>{% endif %} <em class="eta" data-k="m" data-v="add"></em></b>
+          <span>Одоогийн загварыг шинэ датаар цааш сургана. Хуучин мэдлэгээ мартахгүйн тулд өмнөх датанаас санамсаргүй хэсгийг давтан үзүүлнэ. Хурдан. Шинэ дата 10%-иас бага бол тохиромжтой.<i class="formula" data-f="add"></i></span></label>
+        <label class="opt"><input type="radio" name="mode" value="full" {% if rec and rec.mode == 'full' %}checked{% endif %}><b>Бүтэн сургалт{% if rec and rec.mode == 'full' %} <span class="recb">санал болгосон</span>{% endif %} <em class="eta" data-k="m" data-v="full"></em></b>
+          <span>Хуучин бүх дата ({{ "{:,}".format(plan.totals['en-mn']) }} мөр, өмнө сургасан бүх илгээлтийг оруулаад), шинэ датаг хамтад нь нэг дор дахин үзүүлнэ. Удаан ч их хэмжээний (10%+) шинэ датанаас илүү сайн суралцана.<i class="formula" data-f="full"></i></span></label>
+      </div>
+      <div class="step-title">в) Шинэ датаг хэр их ач холбогдолтой гэж үзэх вэ?</div>
+      <div class="opts">
+        {% set wdesc = {1: 'Шинэ датаг бусадтай адил жинтэй үзнэ. Сэдэв нь хүний эрхээс өөр бол тохиромжтой.',
+                        2: 'Санал болгох тохиргоо. Шинэ датанаас сайн сурч, хуучин мэдлэгээ хадгална.',
+                        3: 'Шинэ дата маш чанартай, гол сэдэвт (хүний эрх) хамаарах бол.',
+                        5: 'Зөвхөн цөөн, онцгой чухал дата байвал. Бусад төрлийн текстийн чанар бага зэрэг буурах эрсдэлтэй.'} %}
+        {% for w, label in weights.items() %}
+        <label class="opt"><input type="radio" name="weight" value="{{ w }}" {% if (rec and w == rec.weight) or (not rec and w == 2) %}checked{% endif %}><b>{{ label }}{% if rec and w == rec.weight %} <span class="recb">санал болгосон</span>{% endif %} <em class="eta" data-k="w" data-v="{{ w }}"></em></b><span>{{ wdesc.get(w, '') }}</span></label>
+        {% endfor %}
+      </div>
+      <div class="summary" id="summary"></div>
+      <details><summary>Техникийн дэлгэрэнгүй</summary>
+        <table style="margin-top:8px">
+          <tr><td style="width:240px">Эхлэх (одоогийн) загвар</td><td>EN→MN: <code>{{ current['en-mn'] }}</code><br>MN→EN: <code>{{ current['mn-en'] }}</code></td></tr>
+          <tr><td>Давтлагын дата</td><td>нэмэлт сургалтад шинэ хосын {{ plan.replay_factor }} дахин их (хамгийн багадаа {{ "{:,}".format(plan.replay_min) }} мөр, дээд хязгааргүй), тиймээс шинэ дата хэт их нөлөөлөхгүй. Шинэ дата нийт датаны 10%-иас их бол бүтэн сургалтыг (бүх дата) санал болгоно · EN→MN: <code>{{ plan.replay_src['en-mn'] }}</code>, MN→EN: <code>{{ plan.replay_src['mn-en'] }}</code></td></tr>
+          <tr><td>Тохиргоо</td><td>1 эпох · сурах хурд 2e-5 · 16 мөр/алхам</td></tr>
+          <tr><td style="vertical-align:top;padding-top:10px">Шалгалт</td><td>{{ tests_block() }}</td></tr>
+        </table>
+
+      </details>
+      <div style="margin-top:16px"><button class="btn big">▶ Сургалт эхлүүлэх</button></div>
+    </form>
+  {% endif %}
+  {% if not approved or busy %}
+    <div class="tests-solo"><b style="font-size:14px">🧪 Шалгалтууд</b> <span class="muted" style="font-size:13px">(сургалтын дараа загварыг юугаар шалгах вэ)</span>
+      {{ tests_block() }}</div>
+  {% endif %}
+    <div id="testForms">
+    {% if user.role == 'owner' %}{# Шалгалтын товчнуудын маягтууд: сургалтын маягтаас ГАДНА (дотор нь байвал сургалтыг илгээдэг) #}
+    {% for n, label, req in builtin_tests %}<form id="tg-{{ loop.index }}" method="post" action="/simple/admin/tests/toggle" hidden><input type="hidden" name="name" value="{{ n }}"></form>{% endfor %}
+    {% for ct in custom_tests %}<form id="ct-off-{{ loop.index }}" method="post" action="/simple/admin/tests/remove" hidden><input type="hidden" name="file" value="{{ ct.file }}"><input type="hidden" name="action" value="off"></form>
+    <form id="ct-del-{{ loop.index }}" method="post" action="/simple/admin/tests/remove" hidden onsubmit='return askConfirm(event, {{ ("\"" ~ ct.name ~ "\" шалгалтыг бүр мөсөн устгах уу? Буцаах боломжгүй. Түр зогсоох бол \"унтраах\"-ыг ашиглаарай.")|tojson }})'><input type="hidden" name="file" value="{{ ct.file }}"><input type="hidden" name="action" value="delete"></form>{% endfor %}
+    <form id="tadd" method="post" action="/simple/admin/tests/add" enctype="multipart/form-data" hidden></form>{% endif %}
+    </div>
+  </div>
+
+  <h2><span class="num">3</span>Сургалтын түүх ба загвар шинэчлэх</h2>
+  <p class="sub">Сургалт дууссаны дараа шинэ загварыг одоогийнхтой харьцуулсан дүн гарна. Хүний эрх болон C тест дээр муудаагүй бол "шинэчлэхийг санал болгож байна" гэж гарна. Та "Энэ загвар руу шилжих" дарах хүртэл сайт одоогийн загвараараа ажиллана.
+    {% if user.role != 'owner' %}Дата хариуцсан админ зөвхөн шалгалтад тэнцсэн загварыг байршуулна.{% endif %}</p>
+  <details class="bleuhelp" id="extbenchhelp"><summary>ⓘ BLEU оноог хэрхэн ойлгох вэ?</summary>
+    <div class="bh"><div>
+      <p><b>BLEU</b> (0–100) нь машин орчуулга мэргэжлийн хүний хийсэн орчуулгатай <b>үг, хэллэгийн хувьд хэр давхцаж</b> байгааг хэмждэг. Өндөр байх тусам сайн. 100 бараг хэзээ ч гардаггүй: хоёр өөр орчуулагч нэг текстийг орчуулахад ч ихэвчлэн 40–60 гарна.</p>
+      <table class="bh-t"><tr><th>BLEU</th><th>Ерөнхийдөө юу гэсэн үг вэ</th></tr>
+        <tr><td>10-аас бага</td><td>Бараг ашиглах боломжгүй</td></tr>
+        <tr><td>10–20</td><td>Ерөнхий утгыг ойлгоход л болно</td></tr>
+        <tr><td>20–30</td><td>Ойлгомжтой, гэхдээ хүн засах шаардлагатай</td></tr>
+        <tr><td>30–40</td><td>Сайн орчуулга, бага зэрэг засвартай</td></tr>
+        <tr><td>40+</td><td>Маш сайн, хүний орчуулгад ойрхон</td></tr></table>
+      <p class="muted" style="font-size:13px"><b>Анхаар:</b> "Хууль" шалгалт ~70 гардаг нь загвар тэнд гайхалтай гэсэн үг биш. Хуулийн текстэд "…тухай хуулийн …дугаар зүйлд заасны дагуу" гэх мэт ижил хэллэг маш олон давтагддаг тул таахад хялбар, оноо нь угаасаа өндөр гардаг. Иймээс шалгалт бүрийн оноог <b>зөвхөн өөрийнхөө өмнөх оноотой</b> харьцуулна.</p>
+      </div><div>
+      <p><b>Өөрчлөлтийг хэрхэн унших вэ:</b> ±0.5-аас бага бол бараг ялгаагүй. +1 орчим бол мэдэгдэхүйц. +2-оос дээш бол том сайжрал. "Бодит" гэдэг нь тохиолдлын биш гэдгийг статистик шалгалтаар (p &lt; 0.05) баталсан гэсэн үг. Оноог <b>зөвхөн нэг шалгалтын дотор</b> харьцуулна. Өөр өөр шалгалтын оноог хооронд нь харьцуулж болохгүй.</p>
+      <div id="extbench"><b>Бусад орчуулагчтай харьцуулалт</b> <span class="muted" style="font-size:13px">(англи ↔ монгол, ижил шалгалт дээр)</span>
+      <div class="logbox extbox"><table class="bh-t"><thead><tr><th>Орчуулагч</th><th>Шалгалт</th><th>Огноо</th><th>Тэдний BLEU</th><th>Өмнөхөөс</th><th>Манай одоогийн</th><th></th></tr></thead>
+        {% for e in ext %}<tr><td>{{ e.translator }}</td><td>{{ e.test_name }} <span class="muted">{{ 'EN→MN' if e.direction == 'en-mn' else 'MN→EN' }}</span></td>
+          <td class="muted" style="white-space:nowrap">{{ e.at[:10] }}</td><td>{{ e.bleu }}</td>
+          <td style="white-space:nowrap">{% if e.prev_bleu is not none %}{% set dd = (e.bleu - e.prev_bleu)|round(2) %}<span class="{{ 'bad' if dd > 0.5 else 'good' if dd < -0.5 }}" title="{{ e.prev_at }}-нд {{ e.prev_bleu }}">{{ '▲ +' if dd > 0 else '▼ ' if dd < 0 else '= ' }}{{ dd }}</span><br><span class="muted" style="font-size:11.5px">{{ e.prev_at }}-аас</span>{% else %}<span class="muted" style="font-size:12px">анхны хэмжилт</span>{% endif %}</td>
+          <td>{% if e.ours is not none %}<b class="{{ 'good' if e.ours > e.bleu + 0.5 else 'bad' if e.ours < e.bleu - 0.5 }}">{{ e.ours }}</b>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td>{% if user.role == 'owner' %}<form class="inline" method="post" action="/simple/admin/extbench/delete" onsubmit="return askConfirm(event, 'Энэ харьцуулалтын мөрийг хасах уу?')"><input type="hidden" name="id" value="{{ e.id }}"><button class="linkbtn danger" title="хасах">✕</button></form>{% endif %}</td></tr>
+        {% else %}<tr><td colspan="7" class="muted">Одоогоор харьцуулалт алга.</td></tr>{% endfor %}</table></div>
+      <p class="muted" style="font-size:12px;margin:2px 0 6px">"Өмнөхөөс" нь тухайн орчуулагч нэг шалгалт дээр өмнөх хэмжилтээсээ хэр өөрчлөгдсөнийг харуулна. Тэд сайжирвал улаан ▲ (бидний давуу тал багасна), муудвал ногоон ▼.</p>
+      <p class="muted" style="font-size:12.5px;margin:4px 0">⚠ <b>Анхаар:</b> гадны орчуулагч (Google, Amnesty Translator г.м.) өөрсдийн сургалтад энэ шалгалтын текстийг (жишээ нь нийтэд нээлттэй тайлан, хууль) ашигласан байж болзошгүй. Тэгвэл тэдний оноо бодитоос өндөр гарна. Мөн тэдний чанар цаг хугацааны явцад өөрчлөгддөг тул огноог нь харж, үе үе дахин хэмжээрэй.</p>
+      {% if user.role == 'owner' %}
+      <details class="extadd"><summary>＋ Шинэ харьцуулалт хийх (Google, Amnesty Translator…)</summary>
+        <ol class="ext-steps">
+          <li>Шалгалт, чиглэлээ сонгоод эх текстийг татна:
+            <div class="ext-row"><select id="exTest">{% for k, v in ext_sets.items() %}<option value="{{ k }}">{{ v[0] }}</option>{% endfor %}</select>
+              <select id="exDir"><option value="en-mn">Англи → Монгол</option><option value="mn-en">Монгол → Англи</option></select>
+              <a class="btn secondary small" id="exDl" href="#">⬇ Эх текст татах (.docx)</a></div></li>
+          <li>Тэр файлыг <b>Google Translate</b> (translate.google.com → "Баримт бичиг"), <b>Amnesty Translator</b> эсвэл өөр орчуулагчаар бүхэлд нь орчуулж, үр дүнг татаж авна. Өгүүлбэрийн дугаарыг (1., 2., …) битгий устгаарай.</li>
+          <li>Орчуулсан файлаа оруулна:
+            <form method="post" action="/simple/admin/extbench/upload" enctype="multipart/form-data" class="ext-row" id="exForm">
+              <input type="hidden" name="test"><input type="hidden" name="direction">
+              <input name="translator_name" list="exNames" placeholder="Орчуулагчийн нэр" required style="width:200px">
+              <datalist id="exNames"><option value="Google Translate"><option value="Amnesty Translator"><option value="DeepL"><option value="ChatGPT"></datalist>
+              <label class="filepick" style="position:relative;flex:1"><input type="file" name="file" accept=".docx,.txt" required
+                onchange="const n=this.files[0]?this.files[0].name:'Файл сонгоогүй';this.closest('.filepick').querySelector('.fp-name').textContent=n;this.closest('.filepick').classList.toggle('has',!!this.files[0])">
+                <span class="fp-btn">📎 Орчуулсан файл</span><span class="fp-name">Файл сонгоогүй</span></label>
+              <button class="btn small">Оноо тооцох</button></form>
+            <div class="muted" style="font-size:12px;margin-top:4px">Ямар шалгалт, аль чиглэл болохыг <b>орчуулгын агуулгаар нь</b> автоматаар таньна (файлын нэр, дээрх сонголт хамаагүй).</div></li>
+        </ol>
+        <p class="muted" style="font-size:12px;margin:0">Оноог энэ сервер дээр тооцоолно (GPU хэрэглэхгүй, хэдэн секунд). Үр дүн дээрх хүснэгтэд огноотой нь нэмэгдэнэ.</p>
+      </details>{% endif %}
+      </div>
+      <p class="muted" style="font-size:12px">BLEU бол тоон үзүүлэлт, хүний үнэлгээг бүрэн орлохгүй. Шийдвэр гаргахаасаа өмнө хэдэн жишээ орчуулгыг нүдээрээ шалгаарай.</p>
+</div></div></details>
+  {% if not runs %}<p class="muted">Одоогоор сургалт хийгдээгүй.</p>{% endif %}
+  {% for s in runs %}
+  <div class="card">
+    <b>{{ s.config.started[:16].replace('T', ' ') if s.config and s.config.started else s.run }}</b>
+    <span class="muted">· {{ "{:,}".format(s.config.n_new) if s.config and s.config.n_new else '?' }} шинэ хос · {{ 'бүтэн сургалт' if s.config and s.config.mode == 'full' else 'нэмэлт сургалт' }} · жин ×{{ s.config.weight if s.config and s.config.weight else 2 }}{% if s.config and s.config.by %} · {{ s.config.by }}{% endif %}</span>
+    {% if s.result %}
+      {% for d, r in s.result.items() %}
+      <div class="step-title">{{ 'Англи → Монгол' if d == 'en-mn' else 'Монгол → Англи' }}</div>
+      {% if r.ok %}
+      <table><tr><th>Шалгалт</th><th>Одоогийн (BLEU)</th><th>Шинэ (BLEU)</th><th>Өөрчлөлт</th></tr>
+        {% for t, v in r.tests.items() %}{% set dlt = (v.new_bleu - v.base_bleu)|round(2) %}
+        {% set ns = namespace(nm={'test.csv':'Хүний эрх','test_vision2050.csv':'Vision 2050','test_laws.csv':'Хууль','C_unseen_reports.csv':'C тест (шинэ тайлан)'}.get(t, t)) %}{% for ct in custom_tests if ct.file == t %}{% set ns.nm = ct.name ~ ' (таны шалгалт)' %}{% endfor %}<tr><td>{{ ns.nm }}</td>
+          <td>{{ v.base_bleu }}</td><td>{{ v.new_bleu }}</td>
+          <td class="{{ 'good' if dlt > 0.2 else 'bad' if dlt < -0.3 }}">{{ '+' if dlt > 0 }}{{ dlt }}
+            <span class="muted" style="font-size:12px;font-weight:400"> · {% if dlt|abs < 0.5 %}бараг ялгаагүй{% elif v.get('p') is not none and v.get('p') < 0.05 %}{{ 'бодит сайжрал' if dlt > 0 else 'бодит муудал' }}{% else %}{{ 'бага зэрэг сайжирсан' if dlt > 0 else 'бага зэрэг муудсан' }} (тодорхой биш){% endif %}</span></td></tr>{% endfor %}
+      </table>
+      {% if r.flores %}<p class="muted">{{ r.flores }}</p>{% endif %}
+      <p>{% if r.recommend_deploy %}<span class="good">✓ Муудаагүй. Шинэчлэхийг санал болгож байна.</span>
+         {% else %}{% set hr = (r.tests or {}).get('test.csv') %}{% set cc = (r.tests or {}).get('C_unseen_reports.csv') %}<span class="bad">✗ {% if hr and hr.new_bleu < hr.base_bleu - 0.3 %}Хүний эрхийн шалгалт дээр буурсан ({{ (hr.new_bleu - hr.base_bleu)|round(2) }}){% endif %}{% if hr and hr.new_bleu < hr.base_bleu - 0.3 and cc and cc.new_bleu < cc.base_bleu - 0.3 %}, {% endif %}{% if cc and cc.new_bleu < cc.base_bleu - 0.3 %}C тест дээр буурсан ({{ (cc.new_bleu - cc.base_bleu)|round(2) }}){% endif %}. Шинэчлэхгүй байхыг санал болгож байна.</span>
+         <span class="muted" style="font-size:13px">Дүрэм: Хүний эрх болон C тест аль аль нь 0.3-аас илүү буурахгүй байх ёстой. Бусад шалгалтын сайжралыг харгалзан шийдвэрийг та гаргана.</span>{% endif %}</p>
+      {% if (active.get(d) or {}).get('path') == r.path or current.get(d) == r.path %}<p class="good" style="font-weight:600">✓ Шилжсэн: одоо сайт энэ загвараар ажиллаж байна{% if active.get(d) and active[d].at %} ({{ active[d].at[:16].replace('T', ' ') }}-аас){% endif %}.</p>
+      {% elif (s.declined or {}).get(d) %}<p class="muted" style="font-weight:600">● Одоогийн загвараа үлдээсэн ({{ s.declined[d].at[:16].replace('T', ' ') }}, {{ s.declined[d].by }}). Сайт хуучин загвараараа ажиллаж байна.</p>
+        {% if r.recommend_deploy or user.role == 'owner' %}<div class="dec-row"><span class="muted" style="font-size:13px">Санаа өөрчилсөн бол:</span>
+        <form class="inline" method="post" action="/simple/admin/deploy" onsubmit="return askConfirm(event, 'Вэб сайтыг энэ загвар руу шилжүүлэх үү?')">
+          <input type="hidden" name="direction" value="{{ d }}"><input type="hidden" name="path" value="{{ r.path }}">
+          <button class="btn secondary small">Энэ загвар руу шилжих</button></form></div>{% endif %}
+      {% elif r.recommend_deploy or user.role == 'owner' %}
+      <div class="dec-row">
+      <form class="inline" method="post" action="/simple/admin/deploy" onsubmit="return askConfirm(event, 'Вэб сайтыг энэ загвар руу шилжүүлэх үү?')">
+        <input type="hidden" name="direction" value="{{ d }}"><input type="hidden" name="path" value="{{ r.path }}">
+        <button class="btn {{ '' if r.recommend_deploy else 'secondary' }}">Энэ загвар руу шилжих</button></form>
+      <form class="inline" method="post" action="/simple/admin/run/decline">
+        <input type="hidden" name="run" value="{{ s.run }}"><input type="hidden" name="direction" value="{{ d }}">
+        <button class="btn {{ 'secondary' if r.recommend_deploy else '' }}">Ойлголоо, одоогийнхоо загварыг үлдээх</button></form></div>
+      {% endif %}
+      {% else %}<div class="runprob"><b>⚠ Энэ чиглэлийн сургалт амжилтгүй болсон{% if s.problem == 'oom' %}: GPU-ийн санах ой хүрэлцээгүй{% elif s.problem == 'disk' %}: дискний зай дүүрсэн{% endif %}</b>
+        <div>{% if s.problem == 'oom' %}Сургалтын үеэр өөр програм GPU-г ашигласан.{% else %}Сервер унтарсан эсвэл алдаа гарсан байж магадгүй.{% endif %} Сайт одоогийн загвараараа хэвийн ажиллаж байна.</div>
+        <div><b>Хийх зүйл:</b> доорх "↻ Дахин эхлүүлэх" дарна уу. Зөвхөн амжилтгүй болсон чиглэлийг дахин сургана, амжилттай нь хэвээр үлдэнэ.</div>
+        {% if (s.resume or {}).get(d) %}<div>💾 {{ s.resume[d] }}-р алхам хүртэл хадгалагдсан. Дахин эхлүүлэхэд тэндээс үргэлжилнэ.</div>{% endif %}</div>{% endif %}
+      {% endfor %}
+      {% if s.partial_fail %}<form method="post" action="/simple/admin/train/retry" onsubmit="return askConfirm(event, 'Сургалтыг дахин эхлүүлэх үү? Ижил датаар, сүүлд хадгалсан цэгээс (байвал) үргэлжилнэ.')" style="margin-top:8px">
+        <input type="hidden" name="run" value="{{ s.run }}"><button class="btn small"{% if busy %} disabled{% endif %}>↻ Амжилтгүй чиглэлийг дахин эхлүүлэх</button></form>{% endif %}
+    {% else %}
+      {% for d, r in (s.kept or {}).items() %}{% set t = (r.tests or {}).get('test.csv') %}
+      <div class="runprob warn" style="border-color:rgba(2,122,72,.35);background:rgba(2,122,72,.05)"><b>✓ {{ 'Англи → Монгол' if d == 'en-mn' else 'Монгол → Англи' }}: өмнө нь амжилттай дууссан</b>
+        <div>{% if t %}Хүний эрх BLEU {{ t.base_bleu }} → {{ t.new_bleu }}. {% endif %}{% if (active.get(d) or {}).get('path') == r.path %}Сайт энэ загвараар ажиллаж байна.{% else %}Бүтэн үр дүн, "шилжих" товч нь сургалт дуусахад энд гарна.{% endif %}</div></div>{% endfor %}
+      <div {% if not s.failed %}class="runlive" data-run="{{ s.run }}"{% endif %}>
+      {% if s.failed %}
+      {% set P = {
+        'interrupted': ('⚠ Сургалт тасарсан', 'Сервер унтарсан, дахин асаасан эсвэл сургалтын процесс зогссон байж магадгүй. Сайт одоогийн загвараараа хэвийн ажиллаж байгаа, илгээсэн дата устаагүй.',
+                        'Серверийг асаалттай байгаа эсэхийг шалгаад "↻ Дахин эхлүүлэх" дарна уу. Ижил датаар, сүүлд хадгалсан цэгээс (байвал) үргэлжилнэ.'),
+        'oom': ('⚠ GPU-ийн санах ой хүрэлцээгүй', 'Сургалтын үеэр өөр програм (өөр сургалт эсвэл тооцоолол) GPU-г ашиглаж байсан байж магадгүй.',
+                'GPU чөлөөтэй болсны дараа "↻ Дахин эхлүүлэх" дарна уу. Дахин гарвал үндсэн админд хандана уу.'),
+        'disk': ('⚠ Дискний зай дүүрсэн', 'Шинэ загварыг хадгалах зай үлдээгүй.',
+                 'Үндсэн админ хэрэггүй болсон хуучин сургалтын загваруудыг цэвэрлэсний дараа "↻ Дахин эхлүүлэх" дарна уу.'),
+        'error': ('⚠ Сургалт алдаатай дууссан', 'Тодорхой бус алдаа гарлаа. Дэлгэрэнгүйг доорх логоос харна уу.',
+                  '"↻ Дахин эхлүүлэх" дарж үзнэ үү. Дахин гарвал логийг үндсэн админд илгээнэ үү.')} %}
+      {% set pr = P.get(s.problem) or P['error'] %}
+      <div class="runprob"><b>{{ pr[0] }}</b><div>{{ pr[1] }}</div><div><b>Хийх зүйл:</b> {{ pr[2] }}</div>
+        {% for dd, stp in (s.resume or {}).items() %}<div>💾 {{ 'Англи → Монгол' if dd == 'en-mn' else 'Монгол → Англи' }}: {{ stp }}-р алхам хүртэл хадгалагдсан. Дахин эхлүүлэхэд <b>тэндээс үргэлжилнэ</b>, эхнээс биш.</div>{% endfor %}
+        <form method="post" action="/simple/admin/train/retry" onsubmit="return askConfirm(event, 'Сургалтыг дахин эхлүүлэх үү? Ижил датаар, сүүлд хадгалсан цэгээс (байвал) үргэлжилнэ.')" style="margin-top:8px">
+          <input type="hidden" name="run" value="{{ s.run }}"><button class="btn small"{% if busy %} disabled title="Өөр сургалт явж байна"{% endif %}>↻ Дахин эхлүүлэх</button></form></div>
+      {% else %}
+      <div class="rl-top"><b>⏳ Сургалт явж байна · нийт <span class="rl-pct">{{ s.pct or 0 }}</span>%</b><span class="muted rl-at" style="font-size:12px"></span></div>
+      <div class="runprob warn rl-stall"{% if s.problem != 'stalled' %} hidden{% endif %}><b>⚠ Сургалт 20+ минут урагшлаагүй байна</b>
+        <div>Сервер хэт ачаалалтай эсвэл гацсан байж магадгүй. <b>Хийх зүйл:</b> 10–20 минут хүлээгээд хуудсаа шинэчилнэ үү. Өөрчлөгдөхгүй бол үндсэн админ серверийг шалгана.</div></div>
+      <div class="rl-bar" title="Бүх алхмын нийт явц"><div style="width:{{ s.pct or 0 }}%"></div></div>
+      <ol class="rl-steps">{% for st in s.steps or [] %}<li class="{{ st.state }}"><span class="rl-ico">{{ '✓' if st.state == 'done' else '⏳' if st.state == 'run' else '○' }}</span><span>{{ st.label }}</span><span class="muted">{{ st.detail }}</span></li>{% endfor %}</ol>
+      <div class="rl-rem">⏱ Нийт үлдсэн хугацаа: <b class="rl-remv">…</b> · дуусах: <b class="rl-fin">…</b></div>
+      <div class="muted" style="font-size:12px">Ойролцоо тооцоо. Бүх алхам дуусахад үр дүн энд гарч, хуудас өөрөө шинэчлэгдэнэ.</div>{% endif %}
+      <details class="rl-det"><summary>лог</summary><pre class="runlog rl-log">{{ s.log_tail }}</pre></details></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <h2><span class="num">4</span>Одоогийн загвар</h2>
+  {% for d in model_missing %}<div class="runprob"><b>⚠ {{ 'Англи → Монгол' if d == 'en-mn' else 'Монгол → Англи' }}: сонгосон загварын файл олдсонгүй</b>
+    <div>Загвар руу шилжих үед тасалдсан эсвэл файл зөөгдсөн байж магадгүй. Сайт зогсохгүй: <b>анхны (суурь) загвараараа</b> ажиллаж байна.</div>
+    <div><b>Хийх зүйл:</b> доорх "Загварын түүх"-ээс хүссэн загвараа дахин сонгоно уу. Үгүй бол үндсэн админд хандана уу.</div></div>{% endfor %}
+  <table>
+    <tr><th>Чиглэл</th><th>Загвар</th><th>Сүүлд шинэчилсэн</th><th></th></tr>
+    {% for d, p in current.items() %}
+    <tr><td>{{ 'Англи → Монгол' if d == 'en-mn' else 'Монгол → Англи' }}</td><td><b>{{ mlabel[d][0] }}</b> <span class="muted">· {{ mlabel[d][1] }}</span><br><code style="font-size:12px">{{ p }}</code></td>
+      <td class="muted">{% if active.get(d) and active[d].at %}{{ active[d].at[:16].replace('T', ' ') }}{% if active[d].by %}<br>{{ active[d].by }}{% endif %}{% else %}{{ updated[d] }} (анхны тохиргоо){% endif %}</td>
+      <td>{% if user.role == 'owner' and active.get(d) and active[d].previous %}
+        <form class="inline" method="post" action="/simple/admin/deploy" onsubmit='return askConfirm(event, {{ ("Өмнөх загвар " ~ mprev[d][0] ~ " руу буцаах уу? Одоогийн " ~ mlabel[d][0] ~ " загвараас өмнө ашиглаж байсан загвар. Дараа нь дахин шилжиж болно.")|tojson }})'>
+          <input type="hidden" name="direction" value="{{ d }}"><input type="hidden" name="path" value="{{ active[d].previous }}">
+          <button class="btn secondary small" title="Шилжихээс өмнө ашиглаж байсан загвар">↩ {{ mprev[d][0] }} руу буцаах</button></form>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% for d in ('en-mn', 'mn-en') %}{% set opts = model_hist.get(d, []) %}{% if opts|length > 1 %}
+  <details class="mhist"><summary>Загварын түүх: {{ 'Англи → Монгол' if d == 'en-mn' else 'Монгол → Англи' }} ({{ opts|length }})</summary>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">Хувилбарын дугаар: суурь загвар {{ opts[-1].label }}, дараагийн амжилттай сургалт бүр +1. Аль ч хувилбар руу шилжиж, дараа нь буцаж болно.</p>
+    <div class="logbox mhbox"><table>
+      <thead><tr><th>Хувилбар</th><th>Юу вэ</th><th>Тэмдэглэл</th><th></th></tr></thead>
+      {% for o in opts %}
+      <tr{% if o.current %} style="background:rgba(31,95,191,.05)"{% endif %}><td><b>{{ o.label }}</b></td><td>{{ o.desc }}</td><td class="muted">{{ o.note }}</td>
+        <td>{% if o.current %}<b class="good">✓ одоо ашиглаж байна</b>{% elif user.role == 'owner' or o.recommended %}
+          <form class="inline" method="post" action="/simple/admin/deploy" onsubmit='return askConfirm(event, {{ ("Сайтыг \"" ~ o.label ~ "\" загвар руу шилжүүлэх үү? Дараа нь хүссэн үедээ буцааж болно.")|tojson }})'>
+            <input type="hidden" name="direction" value="{{ d }}"><input type="hidden" name="path" value="{{ o.path }}">
+            <button class="btn secondary small">Энэ загварыг ашиглах</button></form>{% endif %}</td></tr>
+      {% endfor %}
+    </table></div>
+  </details>{% endif %}{% endfor %}
+
+  {% if user.role == 'owner' %}
+  <h2 id="admins"><span class="num">5</span>Дата хариуцсан админууд</h2>
+  <p class="sub">Дата хариуцсан админ: илгээлтийг харж зөвшөөрөх/татгалзах, сургалт эхлүүлэх, шалгалтад тэнцсэн загварыг байршуулах эрхтэй. Бусдын эрхийг удирдах, загварыг буцаах эрхгүй. Ажлаас гарсан эсвэл өөр хэлтэс рүү шилжсэн бол эрхийг нь "Түр хаах" дарж хаана (түүх нь хадгалагдана).</p>
+  <div class="card">
+    <form method="post" action="/simple/admin/admins/add" class="row2">
+      <label class="muted">Имэйл<input type="email" name="email" required></label>
+      <label class="muted">Нэр<input type="text" name="name" maxlength="100"></label>
+      <label class="muted">Түр нууц үг (8+ тэмдэгт)<input type="text" name="password" minlength="8" required autocomplete="off"></label>
+      <button class="btn">+ Админ нэмэх</button>
+    </form>
+    <p class="muted" style="margin-bottom:0">Түр нууц үгийг тухайн хүнд өөрөө дамжуулна. Тэр хүн нэвтэрсний дараа энэ хуудасны доод хэсгээс өөрөө сольж болно.</p>
+  </div>
+  {% if admins %}
+  <table>
+    <tr><th>Имэйл</th><th>Нэр</th><th>Нэмсэн</th><th>Төлөв</th><th>2FA Authenticator</th><th></th></tr>
+    {% for a in admins %}
+    <tr><td>{{ a.email }}</td><td>{{ a.name }}</td><td class="muted">{{ a.created_at[:10] }}{% if a.created_by %} · {{ a.created_by }}{% endif %}</td>
+      <td>{% if a.active %}<span class="pill approved">Идэвхтэй</span>{% else %}<span class="pill rejected">Хаагдсан</span>{% endif %}</td>
+      <td>{% if a.email in tfa %}<span class="pill approved">✓ Холбосон</span>{% else %}<span class="muted">холбоогүй</span>{% endif %}</td>
+      <td style="white-space:nowrap">
+        <form class="inline" method="post" action="/simple/admin/admins/toggle" {% if a.active %}onsubmit='return askConfirm(event, {{ (a.email ~ " хэрэглэгчийн эрхийг хаах уу?")|tojson }})'{% endif %}><input type="hidden" name="email" value="{{ a.email }}">
+          <button class="btn secondary small">{{ 'Түр хаах' if a.active else 'Эрх сэргээх' }}</button></form>
+        <form class="inline" method="post" action="/simple/admin/admins/reset" onsubmit="const p=prompt('Шинэ түр нууц үг (8+ тэмдэгт):'); if(!p) return false; this.password.value=p; return true;">
+          <input type="hidden" name="email" value="{{ a.email }}"><input type="hidden" name="password">
+          <button class="btn secondary small">Нууц үг шинэчлэх</button></form>
+        {% if a.email in tfa %}<form class="inline" method="post" action="/simple/admin/admins/reset2fa" onsubmit='return askConfirm(event, {{ (a.email ~ ": утсаа гээсэн үед л ашиглана. 2FA-г цуцлах уу?")|tojson }})'><input type="hidden" name="email" value="{{ a.email }}">
+          <button class="btn secondary small" title="Утсаа гээсэн үед">2FA цуцлах</button></form>{% endif %}
+      </td></tr>
+    {% endfor %}
+  </table>{% else %}<p class="muted">Одоогоор дата хариуцсан админ алга.</p>{% endif %}
+  {% else %}
+  <h2 id="security-pw">Миний нууц үг солих</h2>
+  <div class="card">
+    <form method="post" action="/simple/admin/password" class="row2">
+      <label class="muted">Одоогийн нууц үг<input type="password" name="old" required></label>
+      <label class="muted">Шинэ нууц үг (8+)<input type="password" name="new" minlength="8" required></label>
+      <label class="muted">Шинэ нууц үг дахин<input type="password" name="new2" minlength="8" required></label>
+      <button class="btn">Солих</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <h2 id="security">Аюулгүй байдал: 2FA Authenticator</h2>
+  <div class="card">
+    {% if my_2fa %}
+      <p style="margin-top:0"><span class="pill approved">✓ Холбосон</span> Нэвтрэх бүрд нууц үг болон утсан дээрх 6 оронтой код асууна.</p>
+      {% if not require_2fa %}
+      <details><summary>Салгах</summary>
+        <form method="post" action="/simple/admin/2fa/disable" class="row2" style="margin-top:8px;max-width:420px">
+          <label class="muted">Апп дээрх одоогийн код<input name="code" inputmode="numeric" maxlength="7" required></label>
+          <button class="btn secondary">Салгах</button></form></details>{% endif %}
+    {% else %}
+      <p style="margin-top:0"><span class="pill rejected">Холбоогүй</span> Нууц үгээс гадна утсан дээрх 6 оронтой кодоор хамгаалахыг зөвлөж байна.</p>
+      <a class="btn" href="/simple/admin/2fa">2FA Authenticator холбох</a>
+    {% endif %}
+    {% if user.role == 'owner' %}
+    <hr style="border:0;border-top:1px solid var(--line,#e3e6eb);margin:16px 0">
+    <div class="req2fa">
+      <div>
+        <b>Бүх админд 2FA заавал байх</b>
+        {% if require_2fa %}<span class="pill approved">Асаалттай</span>{% else %}<span class="pill">Унтраалттай</span>{% endif %}
+        <p class="muted" style="margin:6px 0 0;line-height:1.55">
+          {% if require_2fa %}Одоо бүх админ нэвтрэхдээ нууц үг болон утсан дээрх 6 оронтой кодыг заавал оруулна. 2FA холбоогүй дата админ дараагийн удаа нэвтрэхдээ эхлээд 2FA холбож байж админ самбарт орно.
+          {% else %}Асаавал бүх админ (таныг оруулаад) нууц үг болон утсан дээрх кодоор нэвтэрнэ. 2FA холбоогүй дата админ дараагийн удаа нэвтрэхдээ эхлээд 2FA холбох шаардлагатай болно.{% endif %}</p>
+        {% if not require_2fa and not my_2fa %}<p class="warn-t" style="margin:6px 0 0">Асаахын өмнө та өөрөө дээрх "2FA Authenticator холбох" товчоор 2FA холбох хэрэгтэй.</p>{% endif %}
+      </div>
+      <form method="post" action="/simple/admin/settings/require2fa" {% if require_2fa %}onsubmit="return askConfirm(event, '2FA-г заавал биш болгох уу?')"{% endif %}>
+        <input type="hidden" name="value" value="{{ '0' if require_2fa else '1' }}">
+        <button class="btn {{ 'secondary' if require_2fa else '' }}" {% if not require_2fa and not my_2fa %}disabled title="Эхлээд өөрөө 2FA холбоно уу"{% endif %}>{{ 'Унтраах' if require_2fa else 'Асаах' }}</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <h2>Үйлдлийн түүх</h2>
+  <p class="sub">Хэн, хэзээ, юу хийсэн. Доош гүйлгэхэд өмнөх бичлэгүүд ачаалагдана.
+    {% if user.role != 'owner' %}Та дата хариуцсан админуудын үйлдлийг харна.{% endif %}</p>
+  {% if user.role == 'owner' %}
+  <div class="seg" style="margin-bottom:8px">
+    <button type="button" class="segb on" data-log="all">Бүх түүх</button>
+    <button type="button" class="segb" data-log="owner">Үндсэн админ</button>
+    <button type="button" class="segb" data-log="reviewer">Дата хариуцсан админууд</button>
+    <span class="muted" id="logTotal" style="margin-left:6px"></span></div>
+  {% else %}<p class="muted" id="logTotal" style="margin:0 0 8px"></p>{% endif %}
+  <div class="infilter" role="search">
+    <input type="search" id="lQ" placeholder="🔍 Хэн, юу (имэйл, илгээлт, сэдэв…) гэж хайх" aria-label="Түүхээс хайх">
+    <select id="lAct" aria-label="Үйлдэл"><option value="">Бүх үйлдэл</option></select>
+    <span class="fdates">📅<input type="date" id="lFrom" aria-label="Эхлэх огноо" title="-аас">–<input type="date" id="lTo" aria-label="Дуусах огноо" title="хүртэл"></span>
+    <button type="button" class="linkbtn" id="lClear" hidden>✕ Цэвэрлэх</button>
+    <span class="fcount" id="lCount"></span>
+  </div>
+  <div class="logbox" id="logBox">
+    <table><thead><tr><th>Хэзээ (UTC)</th><th>Хэн</th><th>Үйлдэл</th><th>Дэлгэрэнгүй</th></tr></thead><tbody id="logRows"></tbody></table>
+    <p class="muted" id="logEnd" style="text-align:center;margin:10px 0"></p>
+  </div>
+  <script>
+    (() => {
+      const ACT = Object.assign({"login":"Нэвтэрсэн","approve":"Зөвшөөрсөн","reject":"Татгалзсан","retry":"Дахин боловсруулсан","train":"Сургалт эхлүүлсэн","deploy":"Загвар шинэчилсэн","rollback":"Загвар буцаасан","admin_add":"Админ нэмсэн","admin_disable":"Админы эрх хаасан","admin_enable":"Админы эрх сэргээсэн","admin_reset_password":"Нууц үг шинэчилсэн","password_change":"Өөрийн нууц үг сольсон","2fa_on":"2FA Authenticator холбосон","2fa_off":"2FA Authenticator салгасан","2fa_reset":"Бусдын 2FA цуцалсан","2fa_fail":"2FA код 5 удаа буруу","require_2fa_on":"2FA-г заавал болгосон","require_2fa_off":"2FA-г заавал биш болгосон"}, { threshold: "Босго өөрчилсөн",
+        test_add: "Шалгалт нэмсэн", test_toggle: "Шалгалт унтраасан/асаасан", test_delete: "Шалгалт устгасан", train_retry: "Сургалт дахин эхлүүлсэн",
+        topic_add: "Сэдэв нэмсэн", topic_rename: "Сэдэв нэр солисон", topic_keywords: "Түлхүүр үг засварласан", topic_delete: "Сэдэв устгасан",
+        topic_suggest_accept: "Санал болгосон сэдэв нэмсэн", topic_suggest_dismiss: "Санал болгосон сэдэв хэрэгсээгүй", topic_refresh: "Дахин ангилсан", deploy_decline: "Одоогийн загвараа үлдээсэн", ext_bench: "Гадны орчуулагчтай харьцуулсан", ext_bench_delete: "Харьцуулалт хассан", restore: "Сургалтад орсон төлөвт буцаасан" });
+      const lQ = document.getElementById('lQ'), lAct = document.getElementById('lAct'), lFrom = document.getElementById('lFrom'), lTo = document.getElementById('lTo'), lClear = document.getElementById('lClear');
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const box = document.getElementById('logBox'), tb = document.getElementById('logRows'), end = document.getElementById('logEnd'), tot = document.getElementById('logTotal');
+      let scope = {{ ('all' if user.role == 'owner' else 'reviewer') | tojson }}, before = 0, more = true, busy = false;
+      async function load() {
+        if (busy || !more) return; busy = true; end.textContent = 'Ачаалж байна…';
+        try {
+          const p = new URLSearchParams({ scope, before, limit: 50, q: lQ.value.trim(), act: lAct.value, dfrom: lFrom.value, dto: lTo.value });
+          const r = await fetch('/simple/admin/audit?' + p); const j = await r.json();
+          if (before === 0) tb.innerHTML = '';   // шүүлт солиход: шинэ мөр ирсний дараа л солино (хуудас үсрэхгүй)
+          const cur = lAct.value, opts = (j.actions || []).map((a) => [a, ACT[a] || a]).sort((a, b) => a[1].localeCompare(b[1], 'mn'));
+          if (lAct.options.length - 1 !== opts.length) { lAct.innerHTML = '<option value="">Бүх үйлдэл</option>' + opts.map(([a, l]) => `<option value="${esc(a)}">${esc(l)}</option>`).join(''); lAct.value = cur; }
+          tb.insertAdjacentHTML('beforeend', j.rows.map((l) => `<tr><td class="muted">${esc(l.at.slice(0, 16).replace('T', ' '))}</td><td>${esc(l.actor)}${scope === 'all' ? `<br><span class="pill ${l.role}" style="font-size:11px">${l.role === 'owner' ? 'Үндсэн админ' : 'Дата админ'}</span>` : ''}</td><td>${esc(ACT[l.action] || l.action)}</td><td class="muted">${esc(l.detail)}</td></tr>`).join(''));
+          if (j.rows.length) before = j.rows[j.rows.length - 1].id;
+          const filt = lQ.value.trim() || lAct.value || lFrom.value || lTo.value; lClear.hidden = !filt;
+          more = j.more; tot.textContent = '';
+          document.getElementById('lCount').textContent = (filt ? 'Тохирсон ' : 'Нийт ') + `${j.total.toLocaleString()} бичлэг`;
+          end.textContent = !tb.children.length ? (filt ? 'Шүүлтэд тохирох бичлэг алга.' : 'Одоогоор бичлэг алга.') : more ? '' : 'Бүх бичлэг харагдлаа.';
+        } catch (e) { end.textContent = 'Ачаалж чадсангүй.'; }
+        busy = false;
+        if (more && box.scrollHeight <= box.clientHeight + 10) load();
+      }
+      box.addEventListener('scroll', () => { if (box.scrollTop + box.clientHeight > box.scrollHeight - 80) load(); });
+      document.querySelectorAll('[data-log]').forEach((b) => b.addEventListener('click', () => {
+        document.querySelectorAll('[data-log]').forEach((x) => x.classList.toggle('on', x === b));
+        scope = b.dataset.log; reset();
+      }));
+      function reset() { if (busy) { setTimeout(reset, 150); return; } before = 0; more = true; box.scrollTop = 0; load(); }
+      let tmr = null;
+      lQ.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(reset, 300); });
+      [lAct, lFrom, lTo].forEach((x) => x.addEventListener('change', reset));
+      lClear.addEventListener('click', () => { lQ.value = lAct.value = lFrom.value = lTo.value = ''; reset(); });
+      load();
+    })();
+  </script>
+</main>
+<dialog class="pop" id="pop">
+  <div class="pop-head">
+    <div><b id="popTitle"></b><div class="tabs2" role="tablist">
+      <button type="button" class="tab2" data-tab="ov" role="tab">Тойм</button>
+      <button type="button" class="tab2" data-tab="ex" role="tab">Жишээ хосууд</button></div></div>
+    <button type="button" class="btn secondary small" id="popClose">✕ Хаах</button></div>
+  <div class="pop-ctl" id="popCtl">
+    <div class="thr-top">
+      <div><div class="muted" style="font-size:12px">Орчуулгын таарцын босго</div>
+        <b id="thrVal" class="thr-big">85%</b> <button type="button" class="btn secondary small" id="thrReset" hidden>↺ 85% (санал болгох)</button></div>
+      <div class="thr-count"><div class="muted" style="font-size:12px">Сургалтад орох</div><b id="thrN" class="thr-big">0</b> <span class="muted">хос</span></div>
+    </div>
+    <div id="thrManual" style="margin-top:10px">
+      <input type="range" id="thr" min="65" max="95" step="1" value="85" aria-label="Таарцын босго">
+      <div class="muted thr-scale"><span>65% · их дата, алдаа ихтэй</span><span>95% · цөөн, маш найдвартай</span></div></div>
+    <div id="thrInfo" class="thr-info"></div>
+    <div class="thr-btns">
+      <button type="button" class="btn small" id="thrSave">Энэ босгыг хадгалах</button>
+      <span id="thrMsg" class="muted"></span>
+    </div>
+  </div>
+  <div class="pop-body" id="popBody"></div>
+</dialog>
+<script>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const pop = $('pop'), body = $('popBody'), title = $('popTitle'), thr = $('thr');
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const REASONS = {
+      duplicate: ['Аль хэдийн сургалтын датанд байсан', 'Давхардал, алдагдал биш'],
+      labse: ['Орчуулга нь таараагүй', 'Утга нь өөр, эсвэл огт орчуулга биш (таарц 65–70%-иас бага)'],
+      short: ['Хэт богино', '1–2 үгтэй гарчиг, "A.", "1.2" гэх мэт жагсаалтын тэмдэг'],
+      numbers: ['Тоо зөрсөн', 'Англи, монгол дээрх тоо өөр: буруу хос эсвэл дутуу орчуулга'],
+      length: ['Урт нь хэт зөрүүтэй', 'Нэг тал нь дутуу орчуулагдсан байж болзошгүй'],
+      testset: ['Шалгалтын материалтай давхацсан', 'Шалгалтын өгүүлбэртэй ижил (англи эсвэл монгол тал нь): шалгалтыг шударга байлгахын тулд хассан'],
+      pii: ['Хувийн мэдээлэлтэй', 'Имэйл, утас, регистрийн дугаар: хүний мэдээллийг хамгаалж хассан'],
+      script: ['Хэл холилдсон', 'Нэг талд нь нөгөө хэлний текст орсон'],
+      fragment: ['Тасархай өгүүлбэр', 'PDF-ийн хуудас, баганаар тасарсан хэсэг'],
+      table: ['Зөвхөн тоо', 'Хүснэгтийн тоон мөр: сургалтад хэрэггүй'],
+    };
+    let cur = null, info = null, tab = 'ov', exMode = 'all', changed = false, auto = false;
+    const nAt = (t) => info.sims.filter(([s]) => s >= t - 1e-9).length;
+    const nAuto = () => info.sims.filter(([s, tb]) => s >= (tb ? info.table_min : info.default) - 1e-9).length;
+    const included = ([s, tb]) => auto ? s >= (tb ? info.table_min : info.default) - 1e-9 : s >= +thr.value / 100 - 1e-9;
+    function ctlUpdate() {
+      const n = auto ? nAuto() : nAt(+thr.value / 100), d = n - nAuto();
+      const rec = +thr.value === 85, d85 = nAt(+thr.value / 100) - nAt(0.85);
+      $('thrVal').textContent = thr.value + '%' + (rec ? ' · санал болгох' : '');
+      $('thrReset').hidden = rec || thr.disabled;
+      $('thrN').textContent = n.toLocaleString();
+      const f = $('flN'); if (f) f.textContent = n.toLocaleString();
+      thr.style.setProperty('--p', (+thr.value - 65) / 30);
+      $('thrInfo').innerHTML = rec
+        ? '<b>85%</b>-иас дээш таарцтай хос орно. Энэ бол санал болгох босго. Өөрчлөх бол гулсуурыг гараар хөдөлгөнө үү.'
+        : `<b>${thr.value}%</b>-иас дээш таарцтай хос орно.` + (d85 ? ` 85%-иас <b>${d85 > 0 ? '+' : ''}${d85}</b> хос.` : '') +
+          (d85 > 0 ? ' <span class="warn-t">Нэмэгдэх хосуудыг "Жишээ хосууд" → "Босгын ирмэг"-ээс заавал шалгаарай.</span>' : '');
+      if (tab === 'ov') drawHist();
+    }
+    function drawHist() {
+      const h = $('hist'); if (!h) return;
+      const bins = []; for (let b = 65; b < 100; b += 5) bins.push({ lo: b, inc: 0, exc: 0 });
+      info.sims.forEach((x) => { const k = Math.min(bins.length - 1, Math.max(0, Math.floor((x[0] * 100 - 65 + 1e-6) / 5))); included(x) ? bins[k].inc++ : bins[k].exc++; });
+      const mx = Math.max(1, ...bins.map((b) => b.inc + b.exc));
+      if (h.children.length !== bins.length) {  // нэг удаа зурна, дараа нь зөвхөн өндрийг өөрчилнө (анивчихгүй)
+        h.innerHTML = bins.map((b) => `<div class="hb" title="${b.lo}–${b.lo + 5}%: ${b.inc + b.exc} хос">
+          <div class="hb-bar"><div class="hb-exc"></div><div class="hb-inc"></div></div>
+          <div class="hb-n">${b.inc + b.exc || ''}</div><div class="hb-l">${b.lo}%</div></div>`).join('');
+      }
+      bins.forEach((b, k) => {
+        const el = h.children[k];
+        el.querySelector('.hb-exc').style.height = (b.exc / mx * 100) + '%';
+        el.querySelector('.hb-inc').style.height = (b.inc / mx * 100) + '%';
+      });
+    }
+    // Эх сурвалж: "файлын нэр = N хос" жагсаалт, эхний 5, үлдсэнийг "дэлгэрэнгүй"-гээр
+    function sources() {
+      const st = info.stats || {}, files = info.files || [], out = [];
+      (st.notes || []).forEach((n) => {
+        const m = n.match(/^«(.+)» \(([^)]*)\): (\d+) хос$/);
+        if (m) out.push([m[1], `${(+m[3]).toLocaleString()} хос`]);
+        else if (/^\d+ хос файл/.test(n)) out.push(['Тусдаа англи, монгол файлуудыг хооронд нь тааруулсан', n]);
+        else if (info.mode !== 'many' && files.length) out.push([files.join(' + '), `${(st.aligned ?? info.sims.length).toLocaleString()} хос`]);
+        else if (!/^2 хэлтэй 1 файл/.test(n)) out.push([n, '']);
+      });
+      if (!out.length && files.length) out.push([files.join(' + '), `${(st.aligned ?? info.sims.length).toLocaleString()} хос`]);
+      const seen = new Set(out.map((x) => x[0]));
+      const old = (st.notes || []).some((n) => /^2 хэлтэй 1 файл/.test(n));  // хуучин мессеж: файлын нэргүй
+      files.forEach((f) => { if (info.mode === 'many' && !seen.has(f)) out.push([f, old ? '' : '0 хос (хос олдсонгүй)']); });
+      return out;
+    }
+    function srcList() {
+      const src = sources(); if (!src.length) return '';
+      const li = (x, i) => `<li${i >= 5 ? ' class="src-more" hidden' : ''}><span class="src-n">${esc(x[0])}</span>${x[1] ? ` = <b>${esc(x[1])}</b>` : ''}</li>`;
+      return `<div style="margin-top:10px"><b style="font-size:13px">Эх сурвалж (${src.length} файл)</b> <span class="muted" style="font-size:12px">· файл бүрээс олдсон хос, шүүлтээс өмнө</span>
+        <ol class="src-list">${src.map(li).join('')}</ol>
+        ${src.length > 5 ? `<button type="button" class="linkbtn" id="srcMore">дэлгэрэнгүй (+${src.length - 5}) ▾</button>` : ''}</div>`;
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target.id !== 'srcMore') return;
+      const items = document.querySelectorAll('.src-more'), open = items[0] && !items[0].hidden;
+      items.forEach((x) => (x.hidden = open));
+      e.target.textContent = open ? `дэлгэрэнгүй (+${items.length}) ▾` : 'хураах ▴';
+    });
+    function overview() {
+      const st = info.stats || {}, rem = st.removed || {}, tot = Object.values(rem).reduce((a, b) => a + b, 0);
+      const order = Object.keys(rem).sort((a, b) => rem[b] - rem[a]), mx = Math.max(1, ...Object.values(rem));
+      body.innerHTML = `
+        <div class="flow">
+          <div class="fl"><span>Файлаас олдсон хос</span><b>${(st.aligned ?? info.sims.length).toLocaleString()}</b></div><div class="arr">→</div>
+          <div class="fl"><span>Шүүлтийн дараа</span><b>${info.sims.length.toLocaleString()}</b></div><div class="arr">→</div>
+          <div class="fl hi"><span>Сургалтад орно</span><b id="flN">${$('thrN').textContent}</b></div>
+        </div>
+        ${srcList()}
+        <h4>Таарцын тархалт</h4>
+        <p class="muted" style="margin:0 0 6px">Багана бүр нь тухайн таарцтай хосын тоо. <span class="lg inc"></span> сургалтад орно, <span class="lg exc"></span> орохгүй. Слайдерыг хөдөлгөөд өөрчлөлтийг харна уу.</p>
+        <div id="hist" class="hist"></div>
+        <h4>Яагаад хасагдсан бэ? <span class="muted" style="font-weight:400">· нийт ${tot.toLocaleString()}</span></h4>
+        ${order.length ? order.map((k) => `<div class="rs"><div class="rs-l"><b>${esc((REASONS[k] || [k])[0])}</b><span class="muted">${esc((REASONS[k] || ['', ''])[1])}</span></div>
+            <div class="rs-bar"><div style="width:${rem[k] / mx * 100}%"></div></div><div class="rs-n">${rem[k]}</div></div>`).join('')
+          : '<p class="muted">Хасагдсан хос алга.</p>'}`;
+      drawHist();
+    }
+    async function examples() {
+      let q = '/simple/admin/sample?cid=' + encodeURIComponent(cur), lo = 0, hi = 0;
+      if (exMode === 'edge') { lo = auto ? info.default - 0.05 : +thr.value / 100; hi = auto ? info.default : lo + 0.05; q += `&lo=${lo.toFixed(2)}&hi=${hi.toFixed(2)}`; }
+      body.innerHTML = '<p class="muted">Ачаалж байна…</p>';
+      const r = await fetch(q); const j = r.ok ? await r.json() : null;
+      if (!j) { body.innerHTML = '<p class="bad">Ачаалж чадсангүй.</p>'; return; }
+      body.innerHTML = `<div class="seg">
+          <button type="button" class="segb ${exMode === 'all' ? 'on' : ''}" data-ex="all">Сургалтад орох хосууд</button>
+          <button type="button" class="segb ${exMode === 'edge' ? 'on' : ''}" data-ex="edge">Босгын ирмэг (${Math.round((auto ? info.default - 0.05 : +thr.value / 100) * 100)}–${Math.round((auto ? info.default : +thr.value / 100 + 0.05) * 100)}%)</button>
+          <button type="button" class="btn secondary small" id="exMore" style="margin-left:auto">↻ Өөр жишээ</button></div>
+        <p class="muted" style="margin:4px 0 8px">${exMode === 'edge' ? 'Хасагдах/орох ирмэг дээрх хосууд. Эдгээр зөв байвал босгыг доошлуулж болно.' : 'Сургалтад орох хосуудаас санамсаргүй 12.'}</p>` +
+        (j.pairs.length ? '<table><tr><th>English</th><th>Монгол</th><th>Таарц</th></tr>' +
+          j.pairs.map((p) => `<tr><td>${esc(p.english)}</td><td>${esc(p.mongolian)}</td><td>${p.sim}%${p.table ? '<br><span class="muted">хүснэгт</span>' : ''}</td></tr>`).join('') + '</table>'
+          : '<p class="muted">Энэ завсарт хос алга.</p>');
+      body.querySelectorAll('[data-ex]').forEach((b) => b.addEventListener('click', () => { exMode = b.dataset.ex; examples(); }));
+      $('exMore').addEventListener('click', examples);
+    }
+    function show(t) {
+      tab = t; document.querySelectorAll('.tab2').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
+      t === 'ov' ? overview() : examples();
+    }
+    async function open(cid, name, t) {
+      cur = cid; info = null; exMode = 'all'; title.textContent = name; $('thrMsg').textContent = '';
+      body.innerHTML = '<p class="muted">Ачаалж байна…</p>'; pop.showModal();
+      const r = await fetch('/simple/admin/sample?cid=' + encodeURIComponent(cid));
+      if (!r.ok) { body.innerHTML = '<p class="bad">Ачаалж чадсангүй. Хуудсаа шинэчилнэ үү.</p>'; return; }
+      info = await r.json(); auto = false; thr.value = info.min_sim < 0 ? 85 : Math.round(info.min_sim * 100);
+      const locked = info.status === 'trained';
+      thr.disabled = locked; $('thrSave').hidden = locked;
+            if (locked) $('thrMsg').textContent = 'Сургалтад орсон тул босгыг өөрчлөхгүй.';
+      ctlUpdate(); show(t);
+    }
+    thr.addEventListener('input', () => { auto = false; ctlUpdate(); $('thrMsg').textContent = ''; });
+    // Гараар горимд шилжихэд автоматтай хамгийн ойр тоо өгөх босгоос эхэлнэ (тоо гэнэт унахгүй)
+    $('thrReset').addEventListener('click', () => { if (thr.disabled) return; thr.value = 85; $('thrMsg').textContent = ''; ctlUpdate(); });
+    $('thrSave').addEventListener('click', async () => {
+      const fd = new FormData(); fd.append('cid', cur); fd.append('min_sim', +thr.value / 100);
+      const r = await fetch('/simple/admin/threshold', { method: 'POST', body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) { $('thrMsg').innerHTML = `<span class="good">✓ Хадгаллаа: ${j.n_pairs.toLocaleString()} хос сургалтад орно</span>`; changed = true; }
+      else $('thrMsg').innerHTML = '<span class="bad">✗ ' + esc(j.error || j.detail || 'Алдаа') + '</span>';
+    });
+    document.querySelectorAll('.tab2').forEach((b) => b.addEventListener('click', () => info && show(b.dataset.tab)));
+    document.querySelectorAll('[data-sample]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); open(a.dataset.sample, a.dataset.name, 'ex'); }));
+    document.querySelectorAll('[data-detail]').forEach((b) => b.addEventListener('click', () => open(b.dataset.detail, b.dataset.name, 'ov')));
+    pop.addEventListener('close', () => { if (changed) { try { sessionStorage.setItem('keepY', scrollY); } catch (e) {} location.reload(); } });
+    $('popClose').addEventListener('click', () => pop.close());
+    pop.addEventListener('click', (e) => { if (e.target === pop) pop.close(); });
+  })();
+
+  try { const y = sessionStorage.getItem('keepY'); if (y !== null) { sessionStorage.removeItem('keepY'); history.scrollRestoration = 'manual'; scrollTo(0, +y); } } catch (e) {}
+
+  (() => {
+    const tb = document.getElementById('tpToggle'); if (!tb || !document.getElementById('tests')) return;
+    const show = (on) => { document.getElementById('tests').hidden = !on; tb.setAttribute('aria-expanded', String(on)); tb.textContent = on ? '✕ Хаах' : '✎ Шалгалт засах'; };
+    tb.addEventListener('click', () => show(document.getElementById('tests').hidden));
+    if (location.hash === '#tests') { const tp = document.getElementById('tests'), d = tp.closest('details'); if (d) d.open = true; show(true); setTimeout(() => tp.scrollIntoView({ block: 'center' }), 50);
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }   // дахин ачаалахад нээгдэхгүй
+  })();
+  // Шалгалт унтраах/асаах/нэмэх/устгах: хуудсыг дахин ачаалахгүй, зөвхөн шалгалтын хэсгийг шинэчилнэ
+  document.addEventListener('submit', async (e) => {
+    const fm = e.target;
+    if (!fm.closest || !fm.closest('#testForms') || e.defaultPrevented) return;
+    e.preventDefault();
+    const body = new FormData(fm);   // ЭХЛЭЭД дата авна (идэвхгүй талбар FormData-д орохгүй)
+    document.querySelectorAll(`button[form="${fm.id}"]`).forEach((b) => (b.disabled = true));
+    try {
+      const r = await fetch(fm.getAttribute('action'), { method: 'POST', body });   // fm.action-г name="action" талбар дардаг
+      const html = await r.text(), doc = new DOMParser().parseFromString(html, 'text/html');
+      const u = new URL(r.url), msg = u.searchParams.get('msg'), err = u.searchParams.get('err');
+      for (const id of ['tests', 'tpList', 'testForms']) {
+        const a = document.getElementById(id), b = doc.getElementById(id);
+        if (a && b) { if (id === 'tests') { b.hidden = false; } a.replaceWith(b); }
+      }
+      const m = document.getElementById('tpMsg');
+      if (m && (msg || err)) { m.hidden = false; m.textContent = (err ? '✗ ' : '✓ ') + (err || msg); m.className = err ? 'bad' : 'good'; }
+    } catch (x) {
+      fm.submit();   // сүлжээний алдаа гарвал энгийн аргаар
+    }
+  });
+  document.querySelectorAll('.tkw form').forEach((fm) => {
+    const ta = fm.querySelector('textarea'), btn = fm.querySelector('button'), orig = ta.value;
+    btn.disabled = true; btn.title = 'Өөрчлөлт хийсний дараа идэвхжинэ';
+    ta.addEventListener('input', () => { btn.disabled = ta.value.trim() === orig.trim(); });
+  });
+  // Давхар дарахаас сэргийлнэ: илгээсэн маягтын товчийг түр идэвхгүй болгоно
+  document.addEventListener('submit', (e) => {
+    const b = e.submitter; if (!b || e.target.method.toLowerCase() !== 'post') return;
+    setTimeout(() => { if (!e.defaultPrevented) { b.disabled = true; b.dataset.busy = '1'; } }, 0);
+  });
+  window.addEventListener('pageshow', () => document.querySelectorAll('[data-busy]').forEach((b) => { b.disabled = false; delete b.dataset.busy; }));
+  document.querySelectorAll('[data-kw]').forEach((b) => b.addEventListener('click', () => {
+    const p = document.getElementById('kw-' + b.dataset.kw); p.hidden = !p.hidden;
+    b.setAttribute('aria-expanded', String(!p.hidden)); b.textContent = p.hidden ? 'түлхүүр үг ▾' : 'түлхүүр үг ▴';
+  }));
+  document.querySelectorAll('[data-tsample]').forEach((b) => b.addEventListener('click', async () => {
+    const pop = document.getElementById('pop'), body = document.getElementById('popBody');
+    document.getElementById('popTitle').textContent = 'Сэдэв: ' + b.dataset.tname;
+    document.getElementById('popCtl').hidden = true; document.querySelectorAll('.tabs2').forEach((x) => x.hidden = true);
+    body.innerHTML = '<p class="muted">Ачаалж байна…</p>'; pop.showModal();
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const r = await fetch('/simple/admin/topics/sample?tid=' + encodeURIComponent(b.dataset.tsample)); const j = r.ok ? await r.json() : null;
+    if (!j) { body.innerHTML = '<p class="bad">Ачаалж чадсангүй.</p>'; return; }
+    const tbl = (rows) => '<table><tr><th>English</th><th>Монгол</th></tr>' + rows.map((p) => `<tr><td>${esc(p.english)}</td><td>${esc(p.mongolian)}</td></tr>`).join('') + '</table>';
+    body.innerHTML = (j.new.length ? '<h4>Шинэ илгээлтүүдээс</h4>' + tbl(j.new) : '') + '<h4>Сургалтын датанаас (санамсаргүй 10)</h4>' + (j.train.length ? tbl(j.train) : '<p class="muted">Алга.</p>');
+  }));
+  document.getElementById('pop').addEventListener('close', () => { document.getElementById('popCtl').hidden = false; document.querySelectorAll('.tabs2').forEach((x) => x.hidden = false); });
+  (() => {   // гадны орчуулагчийн харьцуулалт: сонгосон шалгалт/чиглэлийн эх текст татах холбоос
+    const t = document.getElementById('exTest'), d = document.getElementById('exDir'), a = document.getElementById('exDl'), f = document.getElementById('exForm');
+    if (!t) return;
+    const upd = () => { a.href = '/simple/admin/extbench/source?test=' + encodeURIComponent(t.value) + '&direction=' + d.value; f.test.value = t.value; f.direction.value = d.value; };
+    t.addEventListener('change', upd); d.addEventListener('change', upd); upd();
+    if (location.hash === '#extbench') { const h = document.getElementById('extbenchhelp'); if (h) h.open = true; setTimeout(() => document.getElementById('extbench').scrollIntoView({ block: 'center' }), 50); }
+  })();
+  // Ирсэн дата: хайлт + төлөв + огнооны шүүлтүүр (хуудсыг дахин ачаалахгүй)
+  (() => {
+    const q = document.getElementById('fQ'); if (!q) return;
+    const st = document.getElementById('fSt'), fr = document.getElementById('fFrom'), to = document.getElementById('fTo'), cl = document.getElementById('fClear');
+    const rows = [...document.querySelectorAll('#inBox tr.inrow')];
+    const run = () => {
+      const t = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean); let n = 0;
+      rows.forEach((r) => {
+        const ok = t.every((w) => r.dataset.q.includes(w)) && (!st.value || r.dataset.st === st.value)
+          && (!fr.value || r.dataset.d >= fr.value) && (!to.value || r.dataset.d <= to.value);
+        r.hidden = !ok; n += ok;
+      });
+      const any = q.value || st.value || fr.value || to.value;
+      cl.hidden = !any; document.getElementById('fNone').hidden = n > 0;
+      document.getElementById('fCount').textContent = any ? `${n} / ${rows.length} илгээлт` : `Нийт ${rows.length} илгээлт`;
+    };
+    [q, st, fr, to].forEach((x) => x.addEventListener('input', run));
+    cl.addEventListener('click', () => { q.value = st.value = fr.value = to.value = ''; run(); q.focus(); });
+    run();
+  })();
+  // Явж буй сургалт: 5 секунд тутам явц, логийг шинэчилнэ (хуудсыг дахин ачаалахгүй)
+  document.querySelectorAll('.runlive').forEach((el) => {
+    const tick = async () => {
+      try {
+        const r = await fetch('/simple/admin/run_status?run=' + encodeURIComponent(el.dataset.run));
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j.done || j.failed) { try { sessionStorage.setItem('keepY', scrollY); } catch (e) {} location.reload(); return; }
+        el.querySelector('.rl-stall').hidden = j.problem !== 'stalled';
+        const [lo, hi] = j.remaining || [0, 0], fm = (m) => m >= 60 ? `${Math.floor(m / 60)} цаг ${m % 60} мин` : `${m} мин`;
+        const p2 = (n) => String(n).padStart(2, '0'), at = (m) => { const d = new Date(Date.now() + m * 60000);
+          return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
+        el.querySelector('.rl-remv').textContent = lo === hi ? '~' + fm(lo) : `~${fm(lo)} – ${fm(hi)}`;
+        el.querySelector('.rl-fin').textContent = lo === hi ? '~' + at(lo) : `~${at(lo)} – ${at(hi).slice(11)}`;
+        el.querySelector('.rl-pct').textContent = j.pct; el.querySelector('.rl-bar > div').style.width = j.pct + '%';
+        const ol = el.querySelector('.rl-steps'), ico = { done: '✓', run: '⏳', todo: '○' };
+        ol.replaceChildren(...(j.steps || []).map((x) => { const li = document.createElement('li'); li.className = x.state;
+          for (const [c, t] of [['rl-ico', ico[x.state]], ['', x.label], ['muted', x.detail]]) { const sp = document.createElement('span'); if (c) sp.className = c; sp.textContent = t; li.append(sp); }
+          return li; }));
+        const pre = el.querySelector('.rl-log'), atEnd = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 4;
+        if (pre.textContent !== j.log_tail) { pre.textContent = j.log_tail; if (atEnd) pre.scrollTop = pre.scrollHeight; }
+        el.querySelector('.rl-at').textContent = '· шинэчилсэн ' + new Date().toLocaleTimeString('mn-MN', { hour12: false });
+      } catch (e) {}
+    };
+    tick(); setInterval(tick, 5000);
+  });
+  {% if trunning %}setTimeout(() => { try { sessionStorage.setItem('keepY', scrollY); } catch (e) {} location.reload(); }, 20000);{% endif %}
+  const N = {{ approved|int }};
+  const f = document.getElementById('trainForm');
+  const POOLS = {{ plan.pools | tojson }}, PREV = {{ plan.prev|int }}, RPS = {{ plan.rows_per_sec }}, EVAL = {{ plan.eval_min }};
+  const fmt = (m) => m >= 60 ? `${Math.floor(m / 60)} цаг${m % 60 ? ' ' + (m % 60) + ' мин' : ''}` : `${m} мин`;
+  const oldRows = (d, full) => full ? POOLS[d] + PREV : Math.min(POOLS[d] + PREV, Math.max({{ plan.replay_min }}, {{ plan.replay_factor }} * N));
+  // нэг чиглэлийн хугацаа (мин) = (шинэ×жин + хуучин) мөр / секундэд ~19 мөр + эцсийн шалгалт
+  const est = (dirs, full, w) => dirs.reduce((a, d) => a + Math.round((w * N + oldRows(d, full)) / RPS / 60 + EVAL), 0);
+  const WD = ['ням', 'даваа', 'мягмар', 'лхагва', 'пүрэв', 'баасан', 'бямба'];
+  function whenStr(d) {
+    const now = new Date(), hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const days = Math.round((new Date(d.toDateString()) - new Date(now.toDateString())) / 864e5);
+    return (days === 0 ? 'өнөөдөр' : days === 1 ? 'маргааш' : `${d.getMonth() + 1}-р сарын ${d.getDate()} (${WD[d.getDay()]})`) + ' ' + hm + '-д';
+  }
+  function upd() {
+    const dsel = f.querySelector('input[name=directions]:checked').value, dirs = dsel.split(',');
+    const w = +f.querySelector('input[name=weight]:checked').value;
+    const full = f.querySelector('input[name=mode]:checked').value === 'full';
+    f.querySelectorAll('.formula').forEach((e) => {   // "Үндсэн загвар + хуучин дата + шинэ дата" томьёо
+      const fu = e.dataset.f === 'full', o = oldRows(dirs[0], fu), tot = POOLS[dirs[0]] + PREV;
+      e.innerHTML = `Одоогийн загвар + ${fu ? 'хуримтлагдсан <b>бүх</b> дата' : 'хуучин датаны <b>' + (100 * o / tot).toFixed(0) + '%</b>'} (${o.toLocaleString()} мөр)` +
+        ` + шинэ дата (${N.toLocaleString()} × ${w}) = <b>${(o + N * w).toLocaleString()} мөр</b> · ⏱ ≈ ${fmt(est(dirs, fu, w))}`;
+    });
+    f.querySelectorAll('.eta').forEach((e) => {
+      const v = e.dataset.v;
+      const m = e.dataset.k === 'd' ? est(v.split(','), full, w) : e.dataset.k === 'm' ? est(dirs, v === 'full', w) : est(dirs, full, +v);
+      e.textContent = fmt(m);
+    });
+    const min = est(dirs, full, w), old = oldRows(dirs[0], full);
+    const names = { 'en-mn': 'Англи → Монгол', 'mn-en': 'Монгол → Англи' };
+    const end = new Date(Date.now() + min * 60000);
+    document.getElementById('summary').innerHTML =
+      `<b>Хураангуй:</b> ${dirs.map((d) => names[d]).join(' болон ')} орчуулагчийг <b>${N.toLocaleString()}</b> шинэ хосоор сургана. ` +
+      `Шинэ хос бүрийг <b>${w} удаа</b> үзүүлж, ` + (full ? `хуучин <b>бүх</b> датаг (${old.toLocaleString()} мөр) хамт дахин үзүүлнэ (бүтэн сургалт). `
+        : `хуучин мэдлэгээ мартахгүйн тулд өмнөх датанаас <b>${old.toLocaleString()}</b> мөрийг давтан үзүүлнэ (нэмэлт сургалт). `) +
+      `<br><b>⏱ Ойролцоогоор ${fmt(min)}</b> · одоо эхлүүлбэл <b>${whenStr(end)}</b> дуусна.` +
+      `<ul class="info">` +
+      `<li>Хугацаа ойролцоо (±20%): өмнөх сургалтуудын бодит хурдаар (секундэд ~${RPS} мөр) тооцов.</li>` +
+      `<li>Сургалтын үеэр сайт хэвийн ажиллана, гэхдээ орчуулга бага зэрэг удааширч болно.</li>` +
+      `<li>Сургалт сервер дээр явна (таны компьютер биш). Та энэ хуудсыг хааж, компьютерээ унтраасан ч болно. Харин <b>серверийг</b> унтраах, унтуулах (sleep), сүлжээнээс салгаж болохгүй. Тасарвал сургалт зогсож, дахин эхлүүлэх шаардлагатай болно.</li>` +
+      `<li>Нэг удаад нэг сургалт явна. Дуусахаас өмнө шинэ сургалт эхлүүлэх боломжгүй.</li>` +
+      `<li>Дууссаны дараа шинэ загварыг идэвхтэй бүх шалгалтаар (FLORES-ийг оруулаад) автоматаар шалгана. Та "Энэ загвар руу шилжих" дарах хүртэл сайт одоогийн загвараар ажиллана.</li></ul>`;
+  }
+  if (f) { f.addEventListener('change', upd); upd(); }
+</script>
+
+<div id="cfm" class="cfm" hidden role="dialog" aria-modal="true" aria-labelledby="cfmTitle">
+  <div class="cfm-box">
+    <div class="cfm-ico" id="cfmIco">?</div>
+    <div class="cfm-body"><b id="cfmTitle"></b><div id="cfmText" class="muted"></div></div>
+    <div class="cfm-btns"><button type="button" class="btn secondary" id="cfmNo">Болих</button><button type="button" class="btn" id="cfmYes">Тийм</button></div>
+  </div>
+</div>
+<script>
+  // Хөтчийн confirm()-ын оронд сайтын загвартай баталгаажуулах цонх
+  (() => {
+    const box = document.getElementById('cfm'), yes = document.getElementById('cfmYes'), no = document.getElementById('cfmNo');
+    let pending = null, lastFocus = null;
+    const close = (ok) => {
+      box.hidden = true; document.body.style.overflow = '';
+      const p = pending; pending = null; if (lastFocus && lastFocus.focus) lastFocus.focus();
+      if (ok && p) { p.form.dataset.ok = '1'; p.form.requestSubmit(p.submitter && p.submitter.form === p.form ? p.submitter : undefined); }
+    };
+    window.askConfirm = (ev, msg) => {
+      const form = ev.target;
+      if (form.dataset.ok === '1') { delete form.dataset.ok; return true; }
+      const danger = /устгах|хаах|цуцла|буцаах|заавал биш/i.test(msg), train = form.id === 'trainForm';
+      const q = String(msg).split(/(?<=\?)\s/);
+      document.getElementById('cfmTitle').textContent = q[0];
+      const eta = train ? ((document.getElementById('summary')?.innerText || '').match(/⏱[^\n]*/) || [''])[0] : '';
+      document.getElementById('cfmText').textContent = train ? (eta + ' Сургалтын үеэр сайт хэвийн ажиллана.').trim() : q.slice(1).join(' ');
+      document.getElementById('cfmIco').textContent = train ? '▶' : danger ? '!' : '?';
+      box.classList.toggle('danger', danger);
+      yes.textContent = train ? '▶ Эхлүүлэх' : danger ? ('Тийм, ' + (/устгах/.test(msg) ? 'устгах' : /хаах/.test(msg) ? 'хаах' : 'үргэлжлүүлэх')) : 'Тийм';
+      pending = { form, submitter: ev.submitter }; lastFocus = document.activeElement;
+      box.hidden = false; document.body.style.overflow = 'hidden'; (danger ? no : yes).focus();
+      return false;
+    };
+    yes.addEventListener('click', () => close(true));
+    no.addEventListener('click', () => close(false));
+    box.addEventListener('click', (e) => { if (e.target === box) close(false); });
+    document.addEventListener('keydown', (e) => { if (!box.hidden && e.key === 'Escape') close(false); });
+  })();
+</script>
+</body>
+</html>
